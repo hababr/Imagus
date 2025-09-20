@@ -1,0 +1,35 @@
+{
+	"manifest_version": 3,
+
+	"name": "Imagus",
+	"version": "0.9.9",
+	"description": "__MSG_APP_DESCRIPTION__",
+	"default_locale": "en",
+	"author": "Deathamns",
+	"homepage_url": "https://www.reddit.com/r/Imagus",
+
+	"icons": {
+		"128": "common/img/icon.png"
+	},
+
+	"permissions": [
+		"downloads",
+		"history",
+		"storage",
+		"userScripts"
+	],
+	"host_permissions": [
+		"*://*/*"
+	],
+
+	"incognito": "split",
+
+	"background": {
+		"service_worker": "background/service.js"
+	},
+
+	"options_ui": {
+		"page": "options/options.html",
+		"open_in_tab": true
+	}
+}
