@@ -74,5 +74,5 @@
 		"hz_history": "H"
 	},
 	"grants": [],
-	"sieveRepository": ""
+	"sieveRepository": "https://raw.githubusercontent.com/kuzn123/Imagus-Sieve-RuBoard/master/update.txt"
 }
