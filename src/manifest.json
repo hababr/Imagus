@@ -1,8 +1,8 @@
 {
 	"manifest_version": 3,
 
-	"name": "Imagus",
-	"version": "0.9.9",
+	"name": "Imagus Reborn",
+	"version": "0.9.9.3",
 	"description": "__MSG_APP_DESCRIPTION__",
 	"default_locale": "en",
 	"author": "Deathamns",

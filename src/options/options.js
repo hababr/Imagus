@@ -510,7 +510,7 @@ async function checkUserScripts() {
     try {
         const scripts = await chrome.userScripts.getScripts();
         if (scripts?.length > 0) {
-            $("allow_user_scripts_message").innerHTML = `Great! ${app.name} is working now!`;
+            $("allow_user_scripts_message").innerHTML = `Great! ${app.name} is ready now.`;
             $("allow_user_scripts_message").style.backgroundColor = "#dcfad7";
             // $("allow_user_scripts_message").style.display = "none";
             return;
