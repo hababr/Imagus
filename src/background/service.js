@@ -180,6 +180,10 @@ const withBaseURI = function (e, r, s) {
                         a.postMessage({ updated_sieve: e });
                     });
                     break;
+            case "loadScripts":
+                registerContentScripts();
+                break;
+
                 case "download":
                     const e = { url: t.url, priorityExt: t.priorityExt, ext: t.ext, isPrivate: a.isPrivate };
                     if (!e || !e.url) break;
@@ -283,27 +287,40 @@ const withBaseURI = function (e, r, s) {
             }
             return !0;
         }
-    },
-    registerContentScripts = function () {
-        chrome.userScripts.configureWorld({ csp: "script-src 'self' 'unsafe-eval'", messaging: !0 }),
-            chrome.userScripts.unregister().then(function () {
-                chrome.userScripts.register([
-                    { id: "app.js", allFrames: !0, matches: ["*://*/*"], world: "USER_SCRIPT", runAt: "document_start", js: [{ file: "common/app.js" }] },
-                    {
-                        id: "content.js",
-                        allFrames: !0,
-                        matches: ["*://*/*"],
-                        runAt: "document_idle",
-                        world: "USER_SCRIPT",
-                        js: [{ file: "content/content.js" }],
-                    },
-                ]);
-            });
     };
-updatePrefs(null, registerContentScripts),
-    chrome.runtime.onStartup.addListener(updatePrefs),
-    chrome.runtime.onInstalled.addListener(function ({ reason: e }) {
-        "update" === e && registerContentScripts();
-    }),
-    chrome.runtime.onMessage.addListener(onMessage),
-    chrome.runtime.onUserScriptMessage.addListener(onMessage);
+
+function registerContentScripts() {
+    chrome.userScripts.configureWorld({ csp: "script-src 'self' 'unsafe-eval'", messaging: !0 });
+    chrome.userScripts.unregister().then(function () {
+        chrome.userScripts.register([
+            {
+                id: "app.js",
+                allFrames: !0,
+                matches: ["*://*/*"],
+                world: "USER_SCRIPT",
+                runAt: "document_start",
+                js: [{ file: "common/app.js" }]
+            },
+            {
+                id: "content.js",
+                allFrames: !0,
+                matches: ["*://*/*"],
+                runAt: "document_idle",
+                world: "USER_SCRIPT",
+                js: [{ file: "content/content.js" }],
+            },
+        ]);
+    });
+}
+
+updatePrefs(null, registerContentScripts);
+chrome.runtime.onStartup.addListener(updatePrefs);
+chrome.runtime.onInstalled.addListener(function (e) {
+    if (e.reason === "update") {
+        registerContentScripts();
+    } else if (e.reason === "install") {
+        chrome.runtime.openOptionsPage();
+    }
+});
+chrome.runtime.onMessage.addListener(onMessage);
+chrome.runtime.onUserScriptMessage.addListener(onMessage);

@@ -612,3 +612,12 @@ h3 {
         width: 88.7% !important;
     }
 }
+
+section.warning {
+    width: 100%;
+    background: antiquewhite;
+    padding: 14px 30px;
+    margin: 20px 0;
+    border-radius: 6px;
+    transition: background-color 0.5s;
+}

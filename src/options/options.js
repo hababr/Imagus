@@ -495,6 +495,32 @@ var processLNG = function (e) {
                     }
                 }),
                 Port.send({ cmd: "cfg_get", keys: ["hz", "keys", "tls", "grants"] });
-        },
-        !1
-    );
+
+        $("allow_user_scripts").addEventListener("click", function (event) {
+            event.preventDefault();
+            chrome.tabs.create({ url: "chrome://extensions/?id=" + chrome.runtime.id + "#:~:text=Allow%20user%20scripts" });
+        });
+
+        checkUserScripts();
+    },
+    !1
+);
+
+async function checkUserScripts() {
+    try {
+        const scripts = await chrome.userScripts.getScripts();
+        if (scripts?.length > 0) {
+            $("allow_user_scripts_message").innerHTML = `Great! ${app.name} is working now!`;
+            $("allow_user_scripts_message").style.backgroundColor = "#dcfad7";
+            // $("allow_user_scripts_message").style.display = "none";
+            return;
+        } else {
+            Port.send({ cmd: "loadScripts" });
+            $("allow_user_scripts_message").style.display = "block";
+        }
+    } catch(e) {
+        $("allow_user_scripts_message").style.display = "block";
+    }
+
+    setTimeout(checkUserScripts, 2000);
+}
