@@ -500,6 +500,10 @@ var processLNG = function (e) {
             event.preventDefault();
             chrome.tabs.create({ url: "chrome://extensions/?id=" + chrome.runtime.id + "#:~:text=Allow%20user%20scripts" });
         });
+        $("allow_dev_mode").addEventListener("click", function (event) {
+            event.preventDefault();
+            chrome.tabs.create({ url: "chrome://extensions/#:~:text=Developer%20mode" });
+        });
 
         checkUserScripts();
     },
@@ -510,16 +514,23 @@ async function checkUserScripts() {
     try {
         const scripts = await chrome.userScripts.getScripts();
         if (scripts?.length > 0) {
+            $("allow_dev_mode_message").innerHTML =
             $("allow_user_scripts_message").innerHTML = `Great! ${app.name} is ready now.`;
+            $("allow_dev_mode_message").style.backgroundColor =
             $("allow_user_scripts_message").style.backgroundColor = "#dcfad7";
-            // $("allow_user_scripts_message").style.display = "none";
             return;
         } else {
             Port.send({ cmd: "loadScripts" });
-            $("allow_user_scripts_message").style.display = "block";
+            if ($("allow_dev_mode_message").style.display !== "block") {
+                $("allow_user_scripts_message").style.display = "block";
+            }
         }
     } catch(e) {
-        $("allow_user_scripts_message").style.display = "block";
+        if (e.message?.includes("API is only available for users in developer mode")) {
+            $("allow_dev_mode_message").style.display = "block";
+        } else {
+            $("allow_user_scripts_message").style.display = "block";
+        }
     }
 
     setTimeout(checkUserScripts, 2000);
