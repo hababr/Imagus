@@ -299,6 +299,11 @@ const withBaseURI = function (e, r, s) {
         }
     };
 
+function keepAlive() {
+    // keep the service worker alive
+    setInterval(chrome.runtime.getPlatformInfo, 25_000);
+}
+
 function registerContentScripts() {
     chrome.userScripts.configureWorld({ csp: "script-src 'self' 'unsafe-eval'", messaging: !0 });
     chrome.userScripts.unregister().then(function () {
@@ -334,3 +339,5 @@ chrome.runtime.onInstalled.addListener(function (e) {
 });
 chrome.runtime.onMessage.addListener(onMessage);
 chrome.runtime.onUserScriptMessage.addListener(onMessage);
+
+keepAlive();
