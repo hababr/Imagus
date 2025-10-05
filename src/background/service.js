@@ -202,13 +202,16 @@ const withBaseURI = function (e, r, s) {
                         chrome.downloads.download({ url: e.url });
                     }
                     break;
+
                 case "history":
-                    if (a.isPrivate) break;
-                    t.manual
-                        ? chrome.history.getVisits({ url: t.url }, function (e) {
-                              chrome.history[(e.length ? "delete" : "add") + "Url"]({ url: t.url });
-                          })
-                        : chrome.history.addUrl({ url: t.url });
+                    if (chrome.extension?.inIncognitoContext) break;
+                    if (t.manual) {
+                        chrome.history.getVisits({ url: t.url }, function (hv) {
+                            chrome.history[(hv.length ? "delete" : "add") + "Url"]({ url: t.url });
+                        });
+                    } else {
+                        chrome.history.addUrl({ url: t.url });
+                    }
                     break;
                 case "open":
                     Array.isArray(t.url) || (t.url = [t.url]),
