@@ -2,10 +2,9 @@
 	"manifest_version": 3,
 
 	"name": "Imagus Reborn",
-	"version": "0.9.9.4",
+	"version": "0.9.9.5",
 	"description": "__MSG_APP_DESCRIPTION__",
 	"default_locale": "en",
-	"author": "Deathamns",
 	"homepage_url": "https://www.reddit.com/r/Imagus",
 
 	"icons": {
