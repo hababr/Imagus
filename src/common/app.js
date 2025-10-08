@@ -1,7 +1,7 @@
 "use strict";
 let cfg;
 const catchEvent = {},
-    app = { name: "Imagus Reborn", version: "0.9.9.5" };
+    app = { name: "Imagus Reborn", version: "0.9.9.6" };
 function buildNodes(e, t) {
     if (e && Array.isArray(t)) {
         if (!t.length) return e;
