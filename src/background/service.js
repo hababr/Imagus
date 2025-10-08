@@ -1,7 +1,7 @@
 "use strict";
 
-var cachedSieve = [],
-    sieveResLocal = [];
+var cachedSieveRes = [],
+    cachedPrefs = {};
 
 var cfg = {
     sessionGet: (e, r) => (r ? chrome.storage.session.get(e, r) : chrome.storage.session.get(e)),
@@ -78,8 +78,8 @@ const withBaseURI = function (e, r, s) {
     cacheSieve = function (newSieve) {
         if (typeof newSieve === "string") newSieve = JSON.parse(newSieve);
         else newSieve = JSON.parse(JSON.stringify(newSieve));
-        cachedSieve = [];
-        sieveResLocal = [];
+        const cachedSieve = [];
+        cachedSieveRes = [];
 
         for (var ruleName in newSieve) {
             var rule = newSieve[ruleName];
@@ -88,7 +88,7 @@ const withBaseURI = function (e, r, s) {
                 if (rule.off) throw ruleName + " is off";
                 if (rule.res)
                     if (/^:\n/.test(rule.res)) {
-                        sieveResLocal[cachedSieve.length] = rule.res.slice(2);
+                        cachedSieveRes[cachedSieve.length] = rule.res.slice(2);
                         rule.res = 1;
                     } else {
                         if (rule.res.indexOf("\n") > -1) {
@@ -96,7 +96,7 @@ const withBaseURI = function (e, r, s) {
                             rule.res = RegExp(lines[0]);
                             if (lines[1]) rule.res = [rule.res, RegExp(lines[1])];
                         } else rule.res = RegExp(rule.res);
-                        sieveResLocal[cachedSieve.length] = rule.res;
+                        cachedSieveRes[cachedSieve.length] = rule.res;
                         rule.res = true;
                     }
             } catch (ex) {
@@ -108,6 +108,7 @@ const withBaseURI = function (e, r, s) {
             delete rule.note;
             cachedSieve.push(rule);
         }
+        cachedPrefs.sieve = cachedSieve;
     },
     updatePrefs = function (e, r) {
         var s;
@@ -118,7 +119,7 @@ const withBaseURI = function (e, r, s) {
                 n,
                 i = {},
                 c = {};
-            const { cachedPrefs: l } = await cfg.sessionGet("cachedPrefs");
+            const l = cachedPrefs;
             for (o in s) {
                 if (((a = !1), "object" == typeof s[o])) {
                     if (((i[o] = e[o] || t[o] || s[o]), (a = !0), !Array.isArray(s[o])))
@@ -132,7 +133,7 @@ const withBaseURI = function (e, r, s) {
                 for (o = 0; o < n.length; ++o) ";" !== n[o].op && f.push({ op: n[o].op, url: 2 === n[o].op.length ? RegExp(n[o].url, "i") : n[o].url });
                 f.length && (i.grants = f);
             } else delete i.grants;
-            cfg.sessionSet({ cachedPrefs: i }),
+            cachedPrefs = i,
                 e.sieve && ((c.sieve = "string" == typeof e.sieve ? JSON.parse(e.sieve) : e.sieve), cacheSieve(c.sieve)),
                 cfg.set(c, function () {
                     e.sieve ||
@@ -152,19 +153,19 @@ const withBaseURI = function (e, r, s) {
         var t, a;
         if ((null === r ? (t = e) : ((a = { msg: e, origin: r.url, postMessage: s }), (t = a.msg)), t.cmd)) {
             switch (t.cmd) {
-                case "hello":
-                    cfg.sessionGet(["cachedPrefs"], function ({ cachedPrefs: e }) {
-                        var s,
-                            t,
-                            o,
-                            n = !1,
-                            i = { hz: e.hz, sieve: cachedSieve, tls: e.tls, keys: e.keys };
-                        if (e.grants)
-                            for (s = 0, t = (o = e.grants).length; s < t; ++s)
-                                ("*" === o[s].url || (o[s].op[1] && o[s].url.test(a.origin)) || a.origin.indexOf(o[s].url) > -1) && (n = "!" === o[s].op[0]);
-                        a.postMessage({ cmd: "hello", prefs: n ? null : i });
-                    });
+                case "hello": {
+                    let s,
+                        e = cachedPrefs,
+                        t,
+                        o,
+                        n = !1,
+                        i = { hz: e.hz, sieve: cachedPrefs.sieve, tls: e.tls, keys: e.keys };
+                    if (e.grants)
+                        for (s = 0, t = (o = e.grants).length; s < t; ++s)
+                            ("*" === o[s].url || (o[s].op[1] && o[s].url.test(a.origin)) || a.origin.indexOf(o[s].url) > -1) && (n = "!" === o[s].op[0]);
+                    a.postMessage({ cmd: "hello", prefs: n ? null : i });
                     break;
+                }
                 case "cfg_get":
                     Array.isArray(t.keys) || (t.keys = [t.keys]),
                         cfg.get(t.keys, function (e) {
@@ -229,8 +230,8 @@ const withBaseURI = function (e, r, s) {
                     break;
                 case "resolve":
                     var s = { cmd: "resolved", id: t.id, m: null, params: t.params },
-                        o = cachedSieve[s.params.rule.id];
-                    if ((s.params.rule.req_res && (s.params.rule.req_res = sieveResLocal[s.params.rule.id]), s.params.rule.skip_resolve))
+                        o = cachedPrefs.sieve[s.params.rule.id];
+                    if ((s.params.rule.req_res && (s.params.rule.req_res = cachedSieveRes[s.params.rule.id]), s.params.rule.skip_resolve))
                         return (s.params.url = [""]), void a.postMessage(s);
                     var n = /([^\s]+)(?: +:(.+)?)?/.exec(t.url);
                     (t.url = n[1]),
@@ -255,7 +256,7 @@ const withBaseURI = function (e, r, s) {
                                     1 === o.res)
                                 )
                                     return (s.params._ = e), (s.params.base = n.replace(/(\/)[^\/]*(?:[?#].*)*$/, "$1")), void a.postMessage(s);
-                                var i = sieveResLocal[s.params.rule.id],
+                                var i = cachedSieveRes[s.params.rule.id],
                                     c = (i = (Array.isArray(i) ? i : [i]).map(function (e) {
                                         var r = e.source || e;
                                         if (-1 === r.indexOf("$")) return e;
