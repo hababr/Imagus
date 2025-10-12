@@ -1,47 +1,110 @@
 "use strict";
+
 let cfg;
-const catchEvent = {},
-    app = { name: "Imagus Reborn", version: "0.9.9.6" };
-function buildNodes(e, t) {
-    if (e && Array.isArray(t)) {
-        if (!t.length) return e;
-        for (var n = e.ownerDocument, s = n.createDocumentFragment(), r = 0, i = t.length; r < i; r++)
-            if (t[r])
-                if ("string" != typeof t[r]) {
-                    var o = n.createElement(t[r].tag);
-                    if (t[r].attrs) for (var a in t[r].attrs) "style" === a ? (o.style.cssText = t[r].attrs[a]) : o.setAttribute(a, t[r].attrs[a]);
-                    t[r].nodes ? buildNodes(o, t[r].nodes) : t[r].text && (o.textContent = t[r].text), s.appendChild(o);
-                } else s.appendChild(n.createTextNode(t[r]));
-        return s.childNodes.length && e.appendChild(s), e;
+
+const catchEvent = {};
+const app = {
+    name: "Imagus Reborn",
+    version: "0.9.9.6",
+};
+
+function buildNodes(element, nodes) {
+    if (!element || !Array.isArray(nodes)) {
+        return;
     }
+
+    if (!nodes.length) {
+        return element;
+    }
+
+    const doc = element.ownerDocument;
+    const fragment = doc.createDocumentFragment();
+
+    for (let i = 0; i < nodes.length; i++) {
+        const node = nodes[i];
+        if (!node) continue;
+
+        if (typeof node !== "string") {
+            const element = doc.createElement(node.tag);
+
+            if (node.attrs) {
+                for (const attr in node.attrs) {
+                    if (attr === "style") {
+                        element.style.cssText = node.attrs[attr];
+                    } else {
+                        element.setAttribute(attr, node.attrs[attr]);
+                    }
+                }
+            }
+
+            if (node.nodes) {
+                buildNodes(element, node.nodes);
+            } else if (node.text) {
+                element.textContent = node.text;
+            }
+
+            fragment.appendChild(element);
+        } else {
+            fragment.appendChild(doc.createTextNode(node));
+        }
+    }
+
+    if (fragment.childNodes.length) {
+        element.appendChild(fragment);
+    }
+
+    return element;
 }
+
+// Message event listener
 window.addEventListener(
     "message",
-    function (e) {
-        e.data.hasOwnProperty("vdfDpshPtdhhd") && (e.stopImmediatePropagation(), catchEvent?.onmessage?.(e));
+    function (event) {
+        if (event.data.hasOwnProperty("vdfDpshPtdhhd")) {
+            event.stopImmediatePropagation();
+            catchEvent?.onmessage?.(event);
+        }
     },
-    !0
-),
-    window.addEventListener(
-        "keydown",
-        function (e) {
-            catchEvent?.onkeydown?.(e);
-        },
-        !0
-    );
+    true
+);
+
+// Keydown event listener
+window.addEventListener(
+    "keydown",
+    function (event) {
+        catchEvent?.onkeydown?.(event);
+    },
+    true
+);
+
+// Port handling
 const Port = {
-    listen: function (e) {
-        this.listener && chrome.runtime.onMessage.removeListener(this.listener),
-            "function" == typeof e
-                ? (/^(ms-browser|moz)-extension:/.test(location.protocol)
-                      ? (this.listener = function (t, n) {
-                            n || e(t);
-                        })
-                      : (this.listener = e),
-                  chrome.runtime.onMessage.addListener(this.listener))
-                : (this.listener = null);
+    listen: function (callback) {
+        if (this.listener) {
+            chrome.runtime.onMessage.removeListener(this.listener);
+        }
+
+        if (typeof callback === "function") {
+            if (/^(ms-browser|moz)-extension:/.test(location.protocol)) {
+                this.listener = function (message, sender) {
+                    if (!sender) {
+                        callback(message);
+                    }
+                };
+            } else {
+                this.listener = callback;
+            }
+            chrome.runtime.onMessage.addListener(this.listener);
+        } else {
+            this.listener = null;
+        }
     },
-    send: function (e) {
-        Port.listener ? chrome.runtime.sendMessage(e, Port.listener) : chrome.runtime.sendMessage(e);
+
+    send: function (message) {
+        if (Port.listener) {
+            chrome.runtime.sendMessage(message, Port.listener);
+        } else {
+            chrome.runtime.sendMessage(message);
+        }
     },
 };

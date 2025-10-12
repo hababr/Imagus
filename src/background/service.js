@@ -4,301 +4,395 @@ var cachedSieveRes = [],
     cachedPrefs = {};
 
 var cfg = {
-    sessionGet: (e, r) => (r ? chrome.storage.session.get(e, r) : chrome.storage.session.get(e)),
-    sessionSet: (e) => chrome.storage.session.set(e),
-    sessionRemove: (e) => chrome.storage.session.remove(e),
-    get(e, r) {
-        chrome.storage.local.get(e, function (e) {
-            for (var s in e)
-                try {
-                    if (!e[s]) throw Error;
-                    e[s] = JSON.parse(e[s]);
-                } catch (r) {
-                    delete e[s];
-                }
-            r(e);
-        });
+    sessionGet: (keys, callback) => {
+        return callback ? chrome.storage.session.get(keys, callback) : chrome.storage.session.get(keys);
     },
-    set(e, r) {
-        for (var s in e) e[s] = JSON.stringify(e[s]);
-        chrome.storage.local.set(e, r);
+    sessionSet: (items) => {
+        return chrome.storage.session.set(items);
     },
-    remove(e) {
-        chrome.storage.local.remove(e);
+    sessionRemove: (keys) => {
+        return chrome.storage.session.remove(keys);
+    },
+    async get(keys, callback) {
+        const items = await chrome.storage.local.get(keys);
+        for (var key in items) {
+            try {
+                if (!items[key]) throw new Error();
+                items[key] = JSON.parse(items[key]);
+            } catch (error) {
+                delete items[key];
+            }
+        }
+        callback?.(items);
+        return items;
+    },
+    async set(items, callback) {
+        for (var key in items) {
+            items[key] = JSON.stringify(items[key]);
+        }
+        await chrome.storage.local.set(items);
+        callback?.();
+    },
+    remove(keys) {
+        return chrome.storage.local.remove(keys);
     },
 };
-const withBaseURI = function (e, r, s) {
-        return "/" === r[1] && "/" === r[0]
-            ? s
-                ? e.slice(0, e.indexOf(":") + 1) + r
-                : r
-            : /^[\w-]{2,20}:/i.test(r)
-            ? r
-            : e.replace("/" === r[0] ? /(\/\/[^/]+)\/.*/ : /(\/)[^/]*(?:[?#].*)?$/, "$1") + r;
-    },
-    updateSieve = function (e, r) {
-        cfg.get(["sieveRepository", "sieve"], function ({ sieve: s, sieveRepository: t }) {
-            (e = e || !t),
-                fetch(e ? "/data/sieve.json" : t)
-                    .then(function (r) {
-                        if (!e && !r.status) throw new Error("HTTP " + r.status);
-                        return r.json();
-                    })
-                    .then(function (t) {
-                        try {
-                            !(function (s, t) {
-                                if (s) {
-                                    var a,
-                                        o = {};
-                                    for (a in s) {
-                                        if ("dereferers" === a) break;
-                                        t[a] || (o[a] = s[a]);
-                                    }
-                                    for (a in t) o[a] = t[a];
-                                    t = o;
-                                }
-                                updatePrefs({ sieve: t }, function () {
-                                    "function" == typeof r && r(t);
-                                }),
-                                    console.info(chrome.runtime.getManifest().name + ": Sieve updated from " + (e ? "local" : "remote") + " repository.");
-                            })(s, t);
-                        } catch (r) {
-                            console.warn(
-                                chrome.runtime.getManifest().name + ": Sieve failed to update from " + (e ? "local" : "remote") + " repository! | ",
-                                r.message
-                            ),
-                                e ||
-                                    cfg.get("sieve", function (e) {
-                                        e.sieve || updateSieve(!0);
-                                    });
-                        }
-                    });
-        });
-    },
-    cacheSieve = function (newSieve) {
-        if (typeof newSieve === "string") newSieve = JSON.parse(newSieve);
-        else newSieve = JSON.parse(JSON.stringify(newSieve));
-        const cachedSieve = [];
-        cachedSieveRes = [];
 
-        for (var ruleName in newSieve) {
-            var rule = newSieve[ruleName];
-            if ((!rule.link && !rule.img) || (rule.img && !rule.to && !rule.res)) continue;
-            try {
-                if (rule.off) throw ruleName + " is off";
-                if (rule.res)
-                    if (/^:\n/.test(rule.res)) {
-                        cachedSieveRes[cachedSieve.length] = rule.res.slice(2);
-                        rule.res = 1;
-                    } else {
-                        if (rule.res.indexOf("\n") > -1) {
-                            var lines = rule.res.split(/\n+/);
-                            rule.res = RegExp(lines[0]);
-                            if (lines[1]) rule.res = [rule.res, RegExp(lines[1])];
-                        } else rule.res = RegExp(rule.res);
-                        cachedSieveRes[cachedSieve.length] = rule.res;
-                        rule.res = true;
-                    }
-            } catch (ex) {
-                if (typeof ex === "object") console.error(ruleName, rule, ex);
-                else console.info(ex);
-                continue;
-            }
-            if (rule.to && rule.to.indexOf("\n") > 0 && rule.to.indexOf(":\n") !== 0) rule.to = rule.to.split("\n");
-            delete rule.note;
-            cachedSieve.push(rule);
-        }
-        cachedPrefs.sieve = cachedSieve;
-    },
-    updatePrefs = function (e, r) {
-        var s;
-        e || (e = {});
-        var t = async function (t) {
-            var a,
-                o,
-                n,
-                i = {},
-                c = {};
-            const l = cachedPrefs;
-            for (o in s) {
-                if (((a = !1), "object" == typeof s[o])) {
-                    if (((i[o] = e[o] || t[o] || s[o]), (a = !0), !Array.isArray(s[o])))
-                        for (n in s[o]) (void 0 !== i[o][n] && typeof i[o][n] == typeof s[o][n]) || (i[o][n] = (l && void 0 !== l[o][n] ? l : s)[o][n]);
-                } else typeof (n = e[o] || t[o] || s[o]) != typeof s[o] && (n = s[o]), (l && l[o] === n) || (a = !0), (i[o] = n);
-                (a || void 0 === t[o]) && (c[o] = i[o]);
-            }
-            if (i?.grants.length > 0) {
-                n = i.grants || [];
-                var f = [];
-                for (o = 0; o < n.length; ++o) ";" !== n[o].op && f.push({ op: n[o].op, url: 2 === n[o].op.length ? RegExp(n[o].url, "i") : n[o].url });
-                f.length && (i.grants = f);
-            } else delete i.grants;
-            cachedPrefs = i,
-                e.sieve && ((c.sieve = "string" == typeof e.sieve ? JSON.parse(e.sieve) : e.sieve), cacheSieve(c.sieve)),
-                cfg.set(c, function () {
-                    e.sieve ||
-                        cfg.get("sieve", function (e) {
-                            e.sieve ? cacheSieve(e.sieve) : updateSieve(!0);
-                        }),
-                        "function" == typeof r && r();
-                });
-        };
-        fetch("/data/defaults.json")
-            .then((e) => e.json())
-            .then(function (e) {
-                (s = e), cfg.get(Object.keys(e), t);
-            });
-    },
-    onMessage = function (e, r, s) {
-        var t, a;
-        if ((null === r ? (t = e) : ((a = { msg: e, origin: r.url, postMessage: s }), (t = a.msg)), t.cmd)) {
-            switch (t.cmd) {
-                case "hello": {
-                    let s,
-                        e = cachedPrefs,
-                        t,
-                        o,
-                        n = !1,
-                        i = { hz: e.hz, sieve: cachedPrefs.sieve, tls: e.tls, keys: e.keys };
-                    if (e.grants)
-                        for (s = 0, t = (o = e.grants).length; s < t; ++s)
-                            ("*" === o[s].url || (o[s].op[1] && o[s].url.test(a.origin)) || a.origin.indexOf(o[s].url) > -1) && (n = "!" === o[s].op[0]);
-                    a.postMessage({ cmd: "hello", prefs: n ? null : i });
-                    break;
+function withBaseURI(base, relative, secure) {
+    if (relative[0] === '/' && relative[1] === '/') {
+        return secure ? base.slice(0, base.indexOf(":") + 1) + relative : relative;
+    } else if (/^[\w-]{2,20}:/i.test(relative)) {
+        return relative;
+    } else {
+        const regex = relative[0] === '/' ? /(\/\/[^/]+)\/.*/ : /(\/)[^/]*(?:[?#].*)?$/;
+        return base.replace(regex, "$1") + relative;
+    }
+}
+
+async function updateSieve(local, callback) {
+    const { sieve, sieveRepository } = await cfg.get(["sieveRepository", "sieve"]);
+    local = local || !sieveRepository;
+
+    const response = await fetch(local ? "/data/sieve.json" : sieveRepository);
+    if (!local && !response.status) throw new Error("HTTP " + response.status);
+
+    const repository = await response.json();
+    try {
+        (function (currentSieve, newSieve) {
+            if (currentSieve) {
+                let merged = {};
+                for (let key in currentSieve) {
+                    if (key === "dereferers") break;
+                    if (!newSieve[key]) merged[key] = currentSieve[key];
                 }
-                case "cfg_get":
-                    Array.isArray(t.keys) || (t.keys = [t.keys]),
-                        cfg.get(t.keys, function (e) {
-                            a.postMessage({ cfg: e });
-                        });
-                    break;
-                case "cfg_del":
-                    Array.isArray(t.keys) || (t.keys = [t.keys]), cfg.remove(t.keys);
-                    break;
-                case "getLocaleList":
-                    fetch("/data/locales.json")
-                        .then((e) => e.text())
-                        .then(function (e) {
-                            a.postMessage(e);
-                        });
-                    break;
-                case "savePrefs":
-                    updatePrefs(t.prefs);
-                    break;
-                case "update_sieve":
-                    updateSieve(!1, function (e) {
-                        a.postMessage({ updated_sieve: e });
-                    });
-                    break;
-            case "loadScripts":
-                registerContentScripts();
-                break;
-
-                case "download":
-                    const e = { url: t.url, priorityExt: t.priorityExt, ext: t.ext, isPrivate: a.isPrivate };
-                    if (!e || !e.url) break;
-                    try {
-                        chrome.downloads.download({ url: e.url, incognito: e.isPrivate });
-                    } catch (r) {
-                        chrome.downloads.download({ url: e.url });
-                    }
-                    break;
-
-                case "history":
-                    if (chrome.extension?.inIncognitoContext) break;
-                    if (t.manual) {
-                        chrome.history.getVisits({ url: t.url }, function (hv) {
-                            chrome.history[(hv.length ? "delete" : "add") + "Url"]({ url: t.url });
-                        });
-                    } else {
-                        chrome.history.addUrl({ url: t.url });
-                    }
-                    break;
-                case "open":
-                    Array.isArray(t.url) || (t.url = [t.url]),
-                        t.url.forEach(function (e) {
-                            if (e && "string" == typeof e) {
-                                var s = { url: e, active: !t.nf };
-                                r && r.tab && r.tab.id && (s.openerTabId = r.tab.id);
-                                try {
-                                    chrome.tabs.create(s);
-                                } catch (e) {
-                                    delete s.openerTabId, chrome.tabs.create(s);
-                                }
-                            }
-                        });
-                    break;
-                case "resolve":
-                    var s = { cmd: "resolved", id: t.id, m: null, params: t.params },
-                        o = cachedPrefs.sieve[s.params.rule.id];
-                    if ((s.params.rule.req_res && (s.params.rule.req_res = cachedSieveRes[s.params.rule.id]), s.params.rule.skip_resolve))
-                        return (s.params.url = [""]), void a.postMessage(s);
-                    var n = /([^\s]+)(?: +:(.+)?)?/.exec(t.url);
-                    (t.url = n[1]),
-                        n[2] || (n[2] = null),
-                        1 === o.res && ((s.m = !0), (s.params._ = ""), (s.params.url = [n[1], n[2]])),
-                        (n = n[2]),
-                        fetch(t.url, { method: n ? "POST" : "GET", body: n, headers: n ? { "Content-Type": "application/x-www-form-urlencoded" } : {} })
-                            .then(function (e) {
-                                return /^(image|video|audio)\//i.test(e.headers.get("Content-Type"))
-                                    ? ((s.m = t.url),
-                                        (s.noloop = !0),
-                                        console.warn(chrome.runtime.getManifest().name + ": rule " + s.params.rule.id + " matched against an image file"),
-                                        void a.postMessage(s))
-                                    : e.text();
-                            })
-                            .then(function (e) {
-                                var n = e.slice(0, 4096);
-                                if (
-                                    ((n = (n = /<base\s+href\s*=\s*("[^"]+"|'[^']+')/.exec(n))
-                                        ? withBaseURI(t.url, n[1].slice(1, -1).replace(/&amp;/g, "&"), !0)
-                                        : t.url),
-                                    1 === o.res)
-                                )
-                                    return (s.params._ = e), (s.params.base = n.replace(/(\/)[^\/]*(?:[?#].*)*$/, "$1")), void a.postMessage(s);
-                                var i = cachedSieveRes[s.params.rule.id],
-                                    c = (i = (Array.isArray(i) ? i : [i]).map(function (e) {
-                                        var r = e.source || e;
-                                        if (-1 === r.indexOf("$")) return e;
-                                        var t = s.params.length;
-                                        return (
-                                            (t = Array.apply(null, Array(t))
-                                                .map(function (e, r) {
-                                                    return r;
-                                                })
-                                                .join("|")),
-                                            (t = (t = RegExp("([^\\\\]?)\\$(" + t + ")", "g")).test(r)
-                                                ? r.replace(t, function (e, r, t) {
-                                                        return t < s.params.length && "\\" !== r
-                                                            ? r + (s.params[t] ? s.params[t].replace(/[/\\^$-.+*?|(){}[\]]/g, "\\$&") : "")
-                                                            : e;
-                                                    })
-                                                : e),
-                                            "string" == typeof e ? t : RegExp(t)
-                                        );
-                                    }))[0].exec(e);
-                                if (c) {
-                                    var l = s.params.rule.loop_param;
-                                    o.dc &&
-                                        (("link" === l && 2 !== o.dc) || ("img" === l && o.dc > 1)) &&
-                                        (c[1] = decodeURIComponent(decodeURIComponent(c[1]))),
-                                        (s.m = withBaseURI(n, c[1].replace(/&amp;/g, "&"))),
-                                        ((c[2] && (c = c.slice(1))) || (i[1] && (c = i[1].exec(e)))) &&
-                                            (s.m = [
-                                                s.m,
-                                                c
-                                                    .filter(function (e, r) {
-                                                        return !(!r || !e);
-                                                    })
-                                                    .join(" - "),
-                                            ]);
-                                } else console.info(chrome.runtime.getManifest().name + ": no match for " + s.params.rule.id);
-                                a.postMessage(s);
-                            });
+                for (let key in newSieve) {
+                    merged[key] = newSieve[key];
+                }
+                newSieve = merged;
             }
-            return !0;
+            updatePrefs({ sieve: newSieve }, function () {
+                if (typeof callback === "function") callback(newSieve);
+            });
+            console.info(chrome.runtime.getManifest().name + ": Sieve updated from " + (local ? "local" : "remote") + " repository.");
+        })(sieve, repository);
+    } catch (error) {
+        console.warn(
+            chrome.runtime.getManifest().name + ": Sieve failed to update from " + (local ? "local" : "remote") + " repository! | ",
+            error.message
+        );
+        if (!local) {
+            cfg.get("sieve", function (data) {
+                if (!data.sieve) updateSieve(true);
+            });
         }
-    };
+    }
+}
+
+function cacheSieve(newSieve) {
+    if (typeof newSieve === "string") newSieve = JSON.parse(newSieve);
+    else newSieve = JSON.parse(JSON.stringify(newSieve));
+    const cachedSieve = [];
+    cachedSieveRes = [];
+
+    for (var ruleName in newSieve) {
+        var rule = newSieve[ruleName];
+        if ((!rule.link && !rule.img) || (rule.img && !rule.to && !rule.res)) continue;
+        try {
+            if (rule.off) throw ruleName + " is off";
+            if (rule.res)
+                if (/^:\n/.test(rule.res)) {
+                    cachedSieveRes[cachedSieve.length] = rule.res.slice(2);
+                    rule.res = 1;
+                } else {
+                    if (rule.res.indexOf("\n") > -1) {
+                        var lines = rule.res.split(/\n+/);
+                        rule.res = RegExp(lines[0]);
+                        if (lines[1]) rule.res = [rule.res, RegExp(lines[1])];
+                    } else rule.res = RegExp(rule.res);
+                    cachedSieveRes[cachedSieve.length] = rule.res;
+                    rule.res = true;
+                }
+        } catch (ex) {
+            if (typeof ex === "object") console.error(ruleName, rule, ex);
+            else console.info(ex);
+            continue;
+        }
+        if (rule.to && rule.to.indexOf("\n") > 0 && rule.to.indexOf(":\n") !== 0) rule.to = rule.to.split("\n");
+        delete rule.note;
+        cachedSieve.push(rule);
+    }
+    cachedPrefs.sieve = cachedSieve;
+}
+
+async function updatePrefs(prefs, callback) {
+    prefs = prefs || {};
+
+    let defaults = await (await fetch("/data/defaults.json")).json();
+    let storedPrefs = await cfg.get(Object.keys(defaults));
+    let newPrefs = {};
+    let changes = {};
+
+    for (let key in defaults) {
+        let isChanged = false;
+        if (typeof defaults[key] === "object") {
+            newPrefs[key] = prefs[key] || storedPrefs[key] || defaults[key];
+            isChanged = true;
+            if (!Array.isArray(defaults[key])) {
+                for (let subKey in defaults[key]) {
+                    if (newPrefs[key][subKey] === undefined ||
+                        typeof newPrefs[key][subKey] !== typeof defaults[key][subKey])
+                    {
+                        newPrefs[key][subKey] =
+                            cachedPrefs?.[key]?.[subKey] !== undefined
+                            ? cachedPrefs[key][subKey]
+                            : defaults[key][subKey];
+                    }
+                }
+            }
+        } else {
+            let value = prefs[key] || storedPrefs[key] || defaults[key];
+            if (typeof value !== typeof defaults[key]) {
+                value = defaults[key];
+            }
+            if (!cachedPrefs || cachedPrefs[key] !== value) {
+                isChanged = true;
+            }
+            newPrefs[key] = value;
+        }
+        if (isChanged || storedPrefs[key] === undefined) {
+            changes[key] = newPrefs[key];
+        }
+    }
+
+    if (newPrefs.grants?.length > 0) {
+        let grants = newPrefs.grants || [];
+        let processedGrants = [];
+        for (let i = 0; i < grants.length; ++i) {
+            if (grants[i].op !== ";") {
+                processedGrants.push({
+                    op: grants[i].op,
+                    url: grants[i].op.length === 2 ? RegExp(grants[i].url, "i") : grants[i].url,
+                });
+            }
+        }
+        if (processedGrants.length) {
+            newPrefs.grants = processedGrants;
+        }
+    } else {
+        delete newPrefs.grants;
+    }
+
+    cachedPrefs = newPrefs;
+    if (prefs.sieve) {
+        changes.sieve = typeof prefs.sieve === "string" ? JSON.parse(prefs.sieve) : prefs.sieve;
+        cacheSieve(changes.sieve);
+    }
+    await cfg.set(changes);
+    if (!prefs.sieve) {
+        const data = await cfg.get("sieve");
+        if (!data?.sieve) {
+            updateSieve(true);
+        } else {
+            cacheSieve(data.sieve);
+        }
+    }
+    if (typeof callback === "function") {
+        callback();
+    }
+}
+
+function onMessage(message, sender, sendResponse) {
+    let msg, context;
+    if (sender === null) {
+        msg = message;
+    } else {
+        context = { msg: message, origin: sender.url, postMessage: sendResponse };
+        msg = context.msg;
+    }
+    if (!msg.cmd) return;
+
+    switch (msg.cmd) {
+        case "hello": {
+            let blocked = false;
+            let response = { hz: cachedPrefs.hz, sieve: cachedPrefs.sieve, tls: cachedPrefs.tls, keys: cachedPrefs.keys };
+            if (cachedPrefs.grants) {
+                for (let i = 0, len = cachedPrefs.grants.length; i < len; ++i) {
+                    let grant = cachedPrefs.grants[i];
+                    if (grant.url === "*" || (grant.op[1] && grant.url.test(context.origin)) || context.origin.indexOf(grant.url) > -1) {
+                        blocked = grant.op[0] === "!";
+                    }
+                }
+            }
+            context.postMessage({ cmd: "hello", prefs: blocked ? null : response });
+            break;
+        }
+        case "cfg_get":
+            if (!Array.isArray(msg.keys)) {
+                msg.keys = [msg.keys];
+            }
+            cfg.get(msg.keys, function (data) {
+                context.postMessage({ cfg: data });
+            });
+            break;
+        case "cfg_del":
+            if (!Array.isArray(msg.keys)) {
+                msg.keys = [msg.keys];
+            }
+            cfg.remove(msg.keys);
+            break;
+        case "getLocaleList":
+            fetch("/data/locales.json")
+                .then((resp) => resp.text())
+                .then(function (resp) {
+                    context.postMessage(resp);
+                });
+            break;
+        case "savePrefs":
+            updatePrefs(msg.prefs);
+            break;
+        case "update_sieve":
+            updateSieve(false, function (data) {
+                context.postMessage({ updated_sieve: data });
+            });
+            break;
+        case "loadScripts":
+            registerContentScripts();
+            break;
+        case "download":
+            const opts = { url: msg.url, priorityExt: msg.priorityExt, ext: msg.ext, isPrivate: context.isPrivate };
+            if (!opts?.url) break;
+            try {
+                chrome.downloads.download({ url: opts.url, incognito: opts.isPrivate });
+            } catch (r) {
+                chrome.downloads.download({ url: opts.url });
+            }
+            break;
+        case "history":
+            if (chrome.extension?.inIncognitoContext) break;
+            if (msg.manual) {
+                chrome.history.getVisits({ url: msg.url }, function (hv) {
+                    chrome.history[(hv.length ? "delete" : "add") + "Url"]({ url: msg.url });
+                });
+            } else {
+                chrome.history.addUrl({ url: msg.url });
+            }
+            break;
+        case "open":
+            if (!Array.isArray(msg.url)) {
+                msg.url = [msg.url];
+            }
+            msg.url.forEach(function (url) {
+                if (url && typeof url === "string") {
+                    let tabOptions = { url, active: !msg.nf };
+                    if (sender?.tab?.id) {
+                        tabOptions.openerTabId = sender.tab.id;
+                    }
+                    try {
+                        chrome.tabs.create(tabOptions);
+                    } catch (error) {
+                        delete tabOptions.openerTabId;
+                        chrome.tabs.create(tabOptions);
+                    }
+                }
+            });
+            break;
+        case "resolve": {
+            const data = {
+                cmd: "resolved",
+                id: msg.id,
+                m: null,
+                params: msg.params,
+            };
+            const rule = cachedPrefs.sieve[data.params.rule.id];
+
+            if (data.params.rule.req_res) {
+                data.params.rule.req_res = cachedSieveRes[data.params.rule.id];
+            }
+            if (data.params.rule.skip_resolve) {
+                data.params.url = [""];
+                context.postMessage(data);
+                return;
+            }
+
+            const urlParts = /([^\s]+)(?: +:(.+)?)?/.exec(msg.url);
+            msg.url = urlParts[1];
+            let postData = urlParts[2] || null;
+
+            if (rule.res === 1) {
+                data.m = true;
+                data.params._ = "";
+                data.params.url = [urlParts[1], postData];
+            }
+
+            fetch(msg.url, {
+                method: postData ? "POST" : "GET",
+                body: postData,
+                headers: postData ? { "Content-Type": "application/x-www-form-urlencoded" } : {},
+            })
+                .then((fetchResp) => {
+                    const contentType = fetchResp.headers.get("Content-Type");
+                    if (/^(image|video|audio)\//i.test(contentType)) {
+                        data.m = msg.url;
+                        data.noloop = true;
+                        console.warn(chrome.runtime.getManifest().name + ": rule " + data.params.rule.id + " matched against an image file");
+                        context.postMessage(data);
+                        return null;
+                    }
+                    return fetchResp.text();
+                })
+                .then((body) => {
+                    // if (body === null) return;
+                    let base = body.slice(0, 4096);
+                    const baseHrefMatch = /<base\s+href\s*=\s*("[^"]+"|'[^']+')/.exec(base);
+                    base = baseHrefMatch
+                        ? withBaseURI(msg.url, baseHrefMatch[1].slice(1, -1).replace(/&amp;/g, "&"), true)
+                        : msg.url;
+
+                    if (rule.res === 1) {
+                        data.params._ = body;
+                        data.params.base = base.replace(/(\/)[^\/]*(?:[?#].*)*$/, "$1");
+                        context.postMessage(data);
+                        return;
+                    }
+
+                    let patterns = cachedSieveRes[data.params.rule.id];
+                    patterns = Array.isArray(patterns) ? patterns : [patterns];
+                    patterns = patterns.map((pattern) => {
+                        const source = pattern.source || pattern;
+                        if (!source.includes("$")) return pattern;
+                        let group = data.params.length;
+                        group = Array.from({ length: group }, (_, i) => i).join("|");
+                        group = RegExp("([^\\\\]?)\\$(" + group + ")", "g");
+                        group = group.test(source)
+                            ? source.replace(group, (match, pre, idx) => {
+                                  return idx < data.params.length && pre !== "\\"
+                                      ? pre + (data.params[idx] ? data.params[idx].replace(/[/\\^$-.+*?|(){}[\]]/g, "\\$&") : "")
+                                      : match;
+                              })
+                            : group;
+                        return typeof pattern === "string" ? group : RegExp(group);
+                    });
+
+                    let match = patterns[0].exec(body);
+                    if (match) {
+                        const loopParam = data.params.rule.loop_param;
+                        if (rule.dc && (("link" === loopParam && rule.dc !== 2) || ("img" === loopParam && rule.dc > 1))) {
+                            match[1] = decodeURIComponent(decodeURIComponent(match[1]));
+                        }
+                        data.m = withBaseURI(base, match[1].replace(/&amp;/g, "&"));
+                        if ((match[2] && (match = match.slice(1))) || (patterns[1] && (match = patterns[1].exec(body)))) {
+                            data.m = [data.m, match.filter((val, idx) => idx && val).join(" - ")];
+                        }
+                    } else {
+                        console.info(chrome.runtime.getManifest().name + ": no match for " + data.params.rule.id);
+                    }
+                    context.postMessage(data);
+                });
+            break;
+        }
+    }
+    return true;
+}
 
 function keepAlive() {
     // keep the service worker alive
@@ -315,7 +409,7 @@ function registerContentScripts() {
                 matches: ["*://*/*"],
                 world: "USER_SCRIPT",
                 runAt: "document_start",
-                js: [{ file: "common/app.js" }]
+                js: [{ file: "common/app.js" }],
             },
             {
                 id: "content.js",
