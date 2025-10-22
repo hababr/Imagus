@@ -5,7 +5,7 @@ let cfg;
 const catchEvent = {};
 const app = {
     name: "Imagus Reborn",
-    version: "0.9.9.6",
+    version: "0.9.9.7",
 };
 
 function buildNodes(element, nodes) {
