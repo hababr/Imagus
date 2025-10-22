@@ -191,7 +191,7 @@ async function updatePrefs(prefs, callback) {
     if (!prefs.sieve) {
         const data = await cfg.get("sieve");
         if (!data?.sieve) {
-            updateSieve(true);
+            updateSieve(false);
         } else {
             cacheSieve(data.sieve);
         }
