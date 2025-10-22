@@ -25,7 +25,8 @@ body {
     border-top: 0;
     box-shadow: 0 0 4px #333;
     display: none;
-    font: 13px Lucida Grande, Lucida Sans Unicode, Tahoma, sans-serif;
+    /* font: 13px Lucida Grande, Lucida Sans Unicode, Tahoma, sans-serif; */
+    font: 13px / 150% Verdana, Lucida Grande, Lucida Sans Unicode, Tahoma, sans-serif;
     margin: 0 auto;
     max-width: 700px;
     min-height: 300px;
@@ -517,6 +518,7 @@ h3 {
 }
 #sieve_container > .selected > span {
     background-image: linear-gradient(180deg, #fff, #e7e7e7);
+    box-shadow: inset 0 0 6px 2px #bbbbbb;
 }
 #sieve_container > .move {
     background: #fff;
