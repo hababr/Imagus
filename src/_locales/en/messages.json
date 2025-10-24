@@ -270,7 +270,7 @@
         "message": "Every rule must have a unique name!"
     },
     "SIV_DETAILS": {
-        "message": "Ctrl + Right click to delete<br>Drag with left mouse button to move<br>Shift + Right click to rename (Esc/Enter quits)<br>Ctrl + Left click to select (multiple select with Shift)"
+    "message": "Ctrl + Right click to delete<br>Drag with left mouse button to move<br>Right click to rename (Esc/Enter quits)<br>Ctrl + Left click to select (multiple select with Shift)<br>Ctrl + S to save"
     },
     "GRNT_RULEPERLINE": {
         "message": "Rule per line. For more information click the Details button above."

@@ -662,6 +662,13 @@ window.addEventListener(
     false
 );
 
+document.addEventListener("keydown", function (e) {
+    if (e.code === "KeyS" && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        $("save_button").click();
+    }
+}, true);
+
 async function checkUserScripts() {
     try {
         const scripts = await chrome.userScripts.getScripts();
