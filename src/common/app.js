@@ -3,10 +3,7 @@
 let cfg;
 
 const catchEvent = {};
-const app = {
-    name: "Imagus Reborn",
-    version: "0.9.9.7",
-};
+const app = {};
 
 function buildNodes(element, nodes) {
     if (!element || !Array.isArray(nodes)) {

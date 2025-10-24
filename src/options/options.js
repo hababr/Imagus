@@ -1,7 +1,5 @@
 "use strict";
 
-document.title = `:: ${app.name} ::`;
-
 var input_changes = {};
 var $ = function (id) {
     return document.getElementById(id);
@@ -460,6 +458,11 @@ window.onhashchange = function () {
 window.addEventListener(
     "load",
     function () {
+        let manifest = chrome.runtime.getManifest();
+        app.name = manifest.name;
+        app.version = manifest.version;
+
+        document.title = `:: ${app.name} ::`;
         var tmp = $("app_version");
         tmp.textContent = app.name + " v" + app.version;
 

@@ -74,11 +74,11 @@ async function updateSieve(local, callback) {
             updatePrefs({ sieve: newSieve }, function () {
                 if (typeof callback === "function") callback(newSieve);
             });
-            console.info(chrome.runtime.getManifest().name + ": Sieve updated from " + (local ? "local" : "remote") + " repository.");
-        })(sieve, repository);
+        console.info(manifest.name + ": Sieve updated from " + (local ? "local" : "remote") + " repository.");
+
     } catch (error) {
         console.warn(
-            chrome.runtime.getManifest().name + ": Sieve failed to update from " + (local ? "local" : "remote") + " repository! | ",
+            manifest.name + ": Sieve failed to update from " + (local ? "local" : "remote") + " repository! | ",
             error.message
         );
         if (!local) {
@@ -215,7 +215,13 @@ function onMessage(message, sender, sendResponse) {
     switch (msg.cmd) {
         case "hello": {
             let blocked = false;
-            let response = { hz: cachedPrefs.hz, sieve: cachedPrefs.sieve, tls: cachedPrefs.tls, keys: cachedPrefs.keys };
+            let response = {
+                hz: cachedPrefs.hz,
+                sieve: cachedPrefs.sieve,
+                tls: cachedPrefs.tls,
+                keys: cachedPrefs.keys,
+                app: { name: manifest.name, version: manifest.version },
+            };
             if (cachedPrefs.grants) {
                 for (let i = 0, len = cachedPrefs.grants.length; i < len; ++i) {
                     let grant = cachedPrefs.grants[i];

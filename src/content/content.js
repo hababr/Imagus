@@ -629,7 +629,7 @@
                             try {
                                 e[t] = Function("var $ = arguments; " + (i ? "return " : "") + e[t].slice(1)).bind(PVI);
                             } catch (e) {
-                                return console.error(app.name + ": " + t + " - " + e.message), !1;
+                                return console.error(cfg.app?.name + ": " + t + " - " + e.message), !1;
                             }
                     },
                     httpPrepend: function (e, t) {
@@ -1228,7 +1228,7 @@
                                         : t.IMGS_fallback_zoom
                                         ? (PVI.set(t.IMGS_fallback_zoom), delete t.IMGS_fallback_zoom)
                                         : (PVI.CAP && (PVI.CAP.style.display = "none"), delete t.IMGS_c_resolved, PVI.show("R_load")),
-                                    console.info(app.name + ": [" + (this.audio ? "AUDIO" : this.nodeName) + "] Load error > " + r);
+                                    console.info(cfg.app?.name + ": [" + (this.audio ? "AUDIO" : this.nodeName) + "] Load error > " + r);
                             }
                         }
                     },
@@ -2011,7 +2011,7 @@
                                             (t.m = r.res.call(PVI, t.params));
                                     } catch (e) {
                                         return (
-                                            console.error(app.name + ": [rule " + t.params.rule.id + "] " + e.message),
+                                            console.error(cfg.app?.name + ": [rule " + t.params.rule.id + "] " + e.message),
                                             t.return_url || i !== PVI.TRG || PVI.show("R_js"),
                                             1
                                         );
