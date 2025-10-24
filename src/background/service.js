@@ -1,5 +1,6 @@
 "use strict";
 
+var manifest = chrome.runtime.getManifest();
 var cachedSieveRes = [],
     cachedPrefs = {};
 
@@ -423,6 +424,7 @@ function registerContentScripts() {
     });
 }
 
+chrome.action.setTitle({ title: `${manifest.name} v${manifest.version}` });
 updatePrefs(null, registerContentScripts);
 chrome.runtime.onStartup.addListener(updatePrefs);
 chrome.runtime.onInstalled.addListener(function (e) {

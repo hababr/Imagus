@@ -11,6 +11,9 @@
 		"128": "common/img/icon.png"
 	},
 
+	"action": {
+	},
+
 	"permissions": [
 		"downloads",
 		"history",
