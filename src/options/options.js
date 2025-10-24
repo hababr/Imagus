@@ -464,7 +464,7 @@ window.addEventListener(
         tmp.textContent = app.name + " v" + app.version;
 
         var menu = $("nav_menu");
-        processLNG([menu, $("right_panel").firstElementChild]);
+        processLNG(document.querySelectorAll('body > *'));
         if ((tmp = document.querySelectorAll('input[type="color"] + output + input[type="range"], textarea[name="tls_sendToHosts"]'))) {
             var range_onchange = function () {
                 this.parentNode.firstElementChild.style.opacity = this.value;
@@ -645,11 +645,11 @@ window.addEventListener(
         });
         Port.send({ cmd: "cfg_get", keys: ["hz", "keys", "tls", "grants"] });
 
-        $("allow_user_scripts").addEventListener("click", function (event) {
+        document.querySelector("#allow_user_scripts_message > a").addEventListener("click", function (event) {
             event.preventDefault();
             chrome.tabs.create({ url: "chrome://extensions/?id=" + chrome.runtime.id + "#:~:text=Allow%20user%20scripts" });
         });
-        $("allow_dev_mode").addEventListener("click", function (event) {
+        document.querySelector("#allow_dev_mode_message > a").addEventListener("click", function (event) {
             event.preventDefault();
             chrome.tabs.create({ url: "chrome://extensions/#:~:text=Developer%20mode" });
         });
@@ -664,7 +664,7 @@ async function checkUserScripts() {
         const scripts = await chrome.userScripts.getScripts();
         if (scripts?.length > 0) {
             $("allow_dev_mode_message").innerHTML =
-            $("allow_user_scripts_message").innerHTML = `Great! ${app.name} is ready now.`;
+            $("allow_user_scripts_message").innerHTML = _("APP_READY").replace('"Imagus"', app.name);
             $("allow_dev_mode_message").style.backgroundColor =
             $("allow_user_scripts_message").style.backgroundColor = "#dcfad7";
             return;

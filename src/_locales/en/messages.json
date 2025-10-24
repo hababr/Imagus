@@ -442,5 +442,14 @@
     },
     "HZ_SCROLLDELAY": {
         "message": "Scroll delay (ms)"
+  },
+  "ALLOW_USER_SCRIPTS": {
+    "message": "To continue you have to allow User Scripts in <a href=\"#\">the extension details</a>. Then get back here."
+  },
+  "ALLOW_DEV_MODE": {
+    "message": "To continue you have to enable Developer Mode on <a href=\"#\">Extension page</a>.\nThen get back here."
+  },
+  "APP_READY": {
+    "message": "Great! \"Imagus\" is ready now."
     }
 }
