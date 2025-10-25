@@ -7,6 +7,9 @@
 	<script src="../common/app.js"></script>
 	<script src="./options.js"></script>
 	<script src="./SieveUI.js"></script>
+	<script src="../lib/ace/ace.js"></script>
+	<script src="../lib/ace/ext-language_tools.js"></script>
+	<script src="../lib/beautify.min.js"></script>
 </head>
 <body spellcheck="false">
 	<nav id="nav_menu">
@@ -415,13 +418,14 @@ ImgOps|http://imgops.com/%raw_url</textarea>
 				<input id="sieve_search" tabindex="1" type="text" class="searchinput" maxlength="255" data-lng="SEARCH" data-lngattr="placeholder">
 				<small id="sieve_count"></small>
 				<div class="action_buttons">
-					<span data-lng="SIV_BUTT_NEW" data-lngattr="title">+</span>
-					<span data-lng="SIV_BUTT_DEL" data-lngattr="title">-</span>
-					<span data-lng="SIV_BUTT_TOGGLE" data-lngattr="title">&Oslash;</span>
-					<span data-lng="SIV_BUTT_IMP" data-lngattr="title">&darr;</span>
-					<span data-lng="SIV_BUTT_EXP" data-lngattr="title">&uarr;</span>
-					<span data-lng="SIV_BUTT_UPD" data-lngattr="title">&dArr;</span>
-					<span data-lng="DETAILS" data-lngattr="title">&#8801;</span>
+					<span data-action="new-rule" data-lng="SIV_BUTT_NEW" data-lngattr="title">+</span>
+					<span data-action="delete-rules" data-lng="SIV_BUTT_DEL" data-lngattr="title">-</span>
+					<span data-action="toggle-rules" data-lng="SIV_BUTT_TOGGLE" data-lngattr="title">&Oslash;</span>
+					<span data-action="import-rules" data-lng="SIV_BUTT_IMP" data-lngattr="title">&darr;</span>
+					<span data-action="export-rules" data-lng="SIV_BUTT_EXP" data-lngattr="title">&uarr;</span>
+					<span data-action="copy-rules" data-lng="SIV_BUTT_COPY" data-lngattr="title">&#x1F4CB;</span>
+					<span data-action="update-rules" data-lng="SIV_BUTT_UPD" data-lngattr="title">&dArr;</span>
+					<span data-action="show-details" data-lng="DETAILS" data-lngattr="title">&equiv;</span>
 				</div>
 			</div>
 
@@ -435,7 +439,7 @@ ImgOps|http://imgops.com/%raw_url</textarea>
 				</div>
 
 				<hr> -->
-				<p data-lng="SIV_DETAILS"></p>
+				<span data-lng="SIV_DETAILS"></span>
 			</div>
 
 			<div id="sieve_container" class="cf"></div>
@@ -454,7 +458,7 @@ ImgOps|http://imgops.com/%raw_url</textarea>
 
 				<div class="action_buttons">
 					<!-- <span onclick="GrantsUI.add()" class="button" data-lng="GRNT_ADD" data-lngattr="title">+</span> -->
-					<span class="button" data-lng="DETAILS" data-lngattr="title">&#8801;</span>
+					<span data-action="show-details" class="button" data-lng="DETAILS" data-lngattr="title">?</span>
 				</div>
 			</div>
 
@@ -467,8 +471,8 @@ ImgOps|http://imgops.com/%raw_url</textarea>
 
 		<section id="info_sec">
 			<div class="action_buttons">
-				<span data-lng="PREF_IMPORT" data-lngattr="title">&darr;</span>
-				<span data-lng="PREF_EXPORT" data-lngattr="title">&uarr;</span>
+				<span data-action="prefs-import" data-lng="PREF_IMPORT" data-lngattr="title">&darr;</span>
+				<span data-action="prefs-export" data-lng="PREF_EXPORT" data-lngattr="title">&uarr;</span>
 			</div>
 
 			<h3></h3>

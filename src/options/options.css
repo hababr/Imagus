@@ -28,10 +28,12 @@ body {
     /* font: 13px Lucida Grande, Lucida Sans Unicode, Tahoma, sans-serif; */
     font: 13px / 150% Verdana, Lucida Grande, Lucida Sans Unicode, Tahoma, sans-serif;
     margin: 0 auto;
-    max-width: 700px;
+    min-width: 700px;
     min-height: 300px;
     padding: 6px 15px 10px;
     position: relative;
+    box-sizing: border-box;
+    width: min-content;
 }
 a {
     color: #1155ef;
@@ -39,6 +41,9 @@ a {
 }
 a:hover {
     color: #000;
+}
+.bold {
+    font-weight: 700 !important;
 }
 .fn {
     float: none;
@@ -53,7 +58,7 @@ a:hover {
 }
 #app_version {
     display: block;
-    padding-bottom: 5px;
+    padding-top: 5px;
 }
 #importer {
     background-image: linear-gradient(180deg, #fff, rgba(245, 245, 255, 0.9));
@@ -111,6 +116,10 @@ hr {
     border: 1px solid #eee;
     margin: 10px 0;
 }
+#sieve_sec hr {
+    border-color: #ddd;
+    border-bottom: none;
+}
 #right_panel {
     left: 100%;
     position: absolute;
@@ -157,6 +166,7 @@ body.advanced .advanced {
 }
 body > form > section {
     display: none;
+    position: relative;
 }
 nav {
     margin-bottom: 20px;
@@ -286,6 +296,7 @@ label:not(.checkbox):hover {
 }
 .checkbox,
 code,
+pre,
 input,
 select,
 textarea {
@@ -300,8 +311,7 @@ textarea {
     padding: 3px;
     transition: color 0.2s, border-color 0.2s;
 }
-code,
-pre {
+code {
     font: 13px Consolas, Monaco, monospace;
     transition: all 0s;
 }
@@ -330,11 +340,13 @@ label:hover input,
 label:hover > .checkbox,
 select:focus,
 select:hover,
+pre.ace_editor:hover,
+pre.ace_focus,
 textarea:focus,
 textarea:hover {
     border: 1px solid #888;
 }
-input[type="checkbox"] {
+form input[type="checkbox"] {
     display: none;
 }
 .checkbox {
@@ -425,6 +437,18 @@ h3 {
     text-align: center;
     transition: border-color 0.5s;
     width: 20px;
+    filter: grayscale(1);
+}
+#sieve_container .action_buttons > span {
+    height: 12px;
+    width: 16px;
+    line-height: 12px;
+    font-size: 12px;
+    margin-left: 6px;
+    font-weight: 400;
+}
+.action_buttons > span:active {
+    scale: 0.9;
 }
 .action_buttons > span:hover {
     transition: border-color 0s;
@@ -471,8 +495,14 @@ h3 {
     float: left;
     width: 20%;
 }
+#sieve_container .action_buttons,
 #sieve_container > div > div {
     display: none;
+}
+#sieve_container .action_buttons {
+    position: absolute;
+    top: 6px;
+    right: 6px;
 }
 #sieve_container > div > span {
     border: 1px solid #f5f5f5;
@@ -496,7 +526,9 @@ h3 {
     margin: 3px 0 10px;
     padding: 0 5px 10px;
     width: 100%;
+    position: relative;
 }
+#sieve_container > .opened .action_buttons,
 #sieve_container > .opened > div {
     display: block;
 }
@@ -504,6 +536,10 @@ h3 {
     font: 700 16px Verdana, sans-serif;
     min-height: 18px;
     text-overflow: inherit;
+    margin-right: 158px;
+    margin-bottom: 6px;
+    border-radius: 6px;
+    border-color: transparent;
 }
 #sieve_container > div:not(.opened) > span:hover {
     background-image: linear-gradient(180deg, #fff, #f5f5f5 90%);
@@ -541,27 +577,56 @@ h3 {
     border: 1px solid #111 !important;
     color: #000;
     cursor: text;
+    position: relative;
+    z-index: 1;
 }
 #sieve_container > div textarea {
-    height: 95px;
+    resize: vertical;
+    min-height: 95px;
+    resize: both;
+    transition: min-height .1s;
 }
+#sieve_container > div textarea:focus {
+    min-height: 200px;
+}
+#sieve_container > div pre {
+    font-size: 14px;
+    resize: vertical;
+    min-height: 25px;
+    resize: both;
+}
+#sieve_container > div .tar_code {
+    min-height: 110px;
+    transition: min-height .1s;
+}
+#sieve_container > div .tar_code.ace_focus {
+    min-height: 330px;
+}
+#sieve_container pre,
 #sieve_container input[type="text"],
 #sieve_container textarea {
     font: 14px Consolas, monospace;
 }
-#sieve_container > div textarea:focus {
+.ace_hidden-cursors .ace_cursor {
+    opacity: 0;
+}
+#sieve_container > div .tar_code:focus {
     height: 200px;
 }
-#sieve_container > div input[type="text"],
-#sieve_container > div textarea {
+#sieve_container > div > div > pre,
+#sieve_container > div > div > input[type="text"],
+#sieve_container > div > div > textarea {
     box-sizing: border-box;
     margin: 2px 0;
     padding: 3px 2px;
     width: 100%;
+    display: inline-block;
 }
-.sieve_shorter_inp {
-    vertical-align: middle;
-    width: 89.5% !important;
+#sieve_tips {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 10px;
+    margin-bottom: 10px;
 }
 .file_button > input[type="file"] {
     cursor: pointer !important;
@@ -622,4 +687,30 @@ section.warning {
     margin: 20px 0;
     border-radius: 6px;
     transition: background-color 0.5s;
+}
+
+.ace_layer.ace_marker-layer {
+    overflow: visible;
+}
+
+.ace_editor:not(.ace_focus, .ace_autocomplete) .ace_marker-layer .ace_active-line {
+    opacity: 0;
+}
+
+.rule_line {
+    display: flex;
+    align-items: center;
+}
+
+.rule_line pre {
+    flex-basis: 100%;
+}
+
+.rule_line label {
+    margin-right: 4px;
+    flex-shrink: 0;
+}
+
+.rule_line label:first-child {
+    width: 34px;
 }

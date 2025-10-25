@@ -352,11 +352,11 @@ var download = function (data, filename, exportAsText) {
     }
     var blobUrl = URL.createObjectURL(new Blob([data], { type: "text/plain" }));
     a.href = blobUrl;
-    a.download = filename || "";
+    a.download = (filename || "").replace(/\s/g, "_");
     a.dispatchEvent(new MouseEvent("click"));
     setTimeout(function () {
         URL.revokeObjectURL(blobUrl);
-    }, 1e3);
+    }, 1000);
 };
 
 var prefs = function (data, options, ev) {
@@ -397,15 +397,17 @@ window.onhashchange = function () {
             Port.send({ cmd: "cfg_get", keys: ["sieve"] });
         } else if (hash === "grants")
             section.querySelector(".action_buttons").onclick = function (e) {
-                if (e.target.textContent === "≡") $("grants_help").style.display = $("grants_help").style.display === "block" ? "none" : "block";
+                if (e.target.dataset.action === "show-details") {
+                    $("grants_help").style.display = $("grants_help").style.display === "block" ? "none" : "block";
+                }
             };
         else if (hash === "info") {
             section.querySelector(".action_buttons").onclick = function (e) {
-                switch (e.target.textContent) {
-                    case "↓":
+                switch (e.target.dataset.action) {
+                    case "prefs-import":
                         ImprtHandler(_("SC_PREFS"), prefs, { overwrite: 1 });
                         break;
-                    case "↑":
+                    case "prefs-export":
                         prefs(0, 0, e);
                         break;
                 }

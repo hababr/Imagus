@@ -243,11 +243,29 @@
         "message": "Import"
     },
     "SIV_BUTT_EXP": {
-        "message": "Export all or selected"
+    "message": "Export all or selected. Ctrl: Export to new tab. Shift: Format JSON."
+  },
+  "SIV_BUTT_COPY": {
+    "message": "Copy all or selected rules to clipboard. Shift: Format JSON."
     },
     "SIV_BUTT_UPD": {
         "message": "Update Sieve"
     },
+  "SIV_REN_RULE": {
+    "message": "Rename rule"
+  },
+  "SIV_DEL_RULE": {
+    "message": "Remove rule"
+  },
+  "SIV_EXP_RULE": {
+    "message": "Export rule. Ctrl: Export to new tab. Shift: Format JSON."
+  },
+  "SIV_COPY_RULE": {
+    "message": "Copy rule to clipboard. Shift: Format JSON."
+  },
+  "SIV_FORMAT_JS": {
+    "message": "Format JavaScript code"
+  },
     "SIV_CI": {
         "message": "Case-insensitive"
     },

@@ -76,7 +76,7 @@ var sieve_sec,
             sieve_container.onclick = SieveUI.click;
             sieve_container.oncontextmenu = SieveUI.rename_del;
             sieve_sec.querySelector(".action_buttons").onclick = function (e) {
-                switch (e.target.textContent) {
+                switch (e.target.dataset.action) {
                     case "●":
                         SieveUI.select("add");
                         break;
@@ -86,28 +86,30 @@ var sieve_sec,
                     case "◐":
                         SieveUI.select("toggle");
                         break;
-                    case "+":
+                    case "new-rule":
                         SieveUI.add();
                         break;
-                    case "-":
+                    case "delete-rules":
                         SieveUI.remove();
                         break;
-                    case "Ø":
+                    case "toggle-rules":
                         SieveUI.disable();
                         break;
-                    case "↓":
+                    case "import-rules":
                         ImprtHandler(_("NAV_SIEVE"), SieveUI.load);
                         break;
-                    case "↑":
+                    case "export-rules":
                         SieveUI.exprt(e);
                         break;
-                    case "⇓":
+                    case "copy-rules":
+                        SieveUI.exprt(e, null, true);
+                        break;
+                    case "update-rules":
                         SieveUI.update();
                         break;
-                    case "≡":
-                        var s = $("sieve_tips").style;
-                        s.display = s.display === "none" ? "block" : "none";
-                        break;
+                    case "show-details":
+                        var t = $("sieve_tips").style;
+                        t.display = "none" === t.display ? "block" : "none";
                 }
             };
         },
@@ -138,6 +140,7 @@ var sieve_sec,
                             if (visible_rules[name].classList.contains("opened")) rule.classList.add("opened");
                             sieve_container.replaceChild(rule, visible_rules[name]);
                         } else sfrag.appendChild(rule);
+                        SieveUI.sieve[name] = local_sieve[name];
                     }
                     if (sfrag.childNodes.length)
                         if (sieve_container.firstElementChild) sieve_container.insertBefore(sfrag, sieve_container.firstElementChild);
@@ -154,24 +157,18 @@ var sieve_sec,
             if (!SieveUI.loaded) SieveUI.init();
         },
         prepareRules: function (ignore_dupes) {
-            var i,
-                j,
-                params,
-                param,
-                rule,
-                opt_name,
-                rgxWhitespace = /\s+/g,
+            var rgxWhitespace = /\s+/g,
                 output = {},
                 dupes = [],
                 rules = sieve_sec.querySelectorAll("#sieve_container > div"),
                 some_func = function (el) {
-                    return el.value.trim() !== "";
+                    return el.env?.editor?.getValue().trim() !== "" || el.value.trim() !== "";
                 };
-            for (i = 0; i < rules.length; ++i) {
-                rule = rules[i].firstElementChild;
-                opt_name = rule.textContent.trim().replace(rgxWhitespace, " ");
+            for (let i = 0; i < rules.length; ++i) {
+                const rule = rules[i].querySelector(":scope > [data-action='rule']");
+                const opt_name = rule.textContent.trim().replace(rgxWhitespace, " ");
                 rule.textContent = opt_name;
-                if (!opt_name && (!rule.nextElementSibling.textContent || [].some.call(rules[i].querySelectorAll('input[type="text"], textarea'), some_func))) {
+                if (!opt_name && (!rule.nextElementSibling.textContent || [].some.call(rules[i].querySelectorAll('input[type="text"], textarea, pre'), some_func))) {
                     alert(_("SIV_ERR_EMPTYNAME"));
                     rule.contentEditable = true;
                     rule.focus();
@@ -191,13 +188,14 @@ var sieve_sec,
                 return null;
             }
             output = {};
-            for (i = 0; i < rules.length; ++i) {
-                opt_name = rules[i].firstElementChild.textContent;
+            for (let i = 0; i < rules.length; ++i) {
+                let opt_name = rules[i].querySelector(":scope > [data-action='rule']").textContent;
                 if (!opt_name) continue;
                 output[opt_name] = {};
-                rule = output[opt_name];
+                let rule = output[opt_name];
                 if (rules[i].classList.contains("disabled")) rule.off = 1;
-                params = rules[i].querySelectorAll("input, textarea");
+
+                const params = rules[i].querySelectorAll("[data-name]");
                 if (!params.length) {
                     if (SieveUI.sieve[rules[i].rule]) {
                         rule = SieveUI.sieve[rules[i].rule];
@@ -208,33 +206,40 @@ var sieve_sec,
                     }
                     continue;
                 }
-                for (j = 0; j < params.length; ++j) {
-                    param = params[j].name.substr(0, params[j].name.indexOf("["));
-                    switch (param) {
+
+                for (let j = 0; j < params.length; ++j) {
+                    let name = params[j].dataset.name;
+                    switch (name) {
                         case "useimg":
-                            if (params[j].checked) rule[param] = 1;
+                            if (params[j].checked) rule[name] = 1;
                             break;
                         case "note":
                             params[j].value = params[j].value.trim();
+                            rule[name] = params[j].value.replace(/\r\n?/g, "\n");
+                            break;
                         case "link":
                         case "url":
                         case "res":
                         case "img":
-                        case "to":
-                            if (params[j].value !== "") rule[param] = params[j].value.replace(/\r\n?/g, "\n");
+                        case "to": {
+                            let value = params[j].env?.editor?.getValue();
+                            if (typeof value === "string" && value !== "") {
+                                rule[name] = value.replace(/\r\n?/g, "\n");
+                            }
                             break;
+                        }
                         case "link_ci":
                         case "img_ci":
                         case "link_dc":
                         case "img_dc":
                         case "link_loop":
                         case "img_loop":
-                            opt_name = param.split("_");
-                            param = opt_name[1];
+                            opt_name = name.split("_");
+                            name = opt_name[1];
                             opt_name = opt_name[0];
                             if (rule[opt_name] && params[j].checked) {
-                                opt_name = (rule[param] || 0) | (opt_name === "link" ? 1 : 2);
-                                if (opt_name) rule[param] = opt_name;
+                                opt_name = (rule[name] || 0) | (opt_name === "link" ? 1 : 2);
+                                if (opt_name) rule[name] = opt_name;
                             }
                             break;
                     }
@@ -256,55 +261,150 @@ var sieve_sec,
             var vals = container.lastChild,
                 c = "[" + this.cntr + "]",
                 sd = data || this.sieve[container.rule] || {};
+
+            buildNodes(container, [
+                {
+                    tag: "div", attrs: { class: "action_buttons" },
+                    nodes: [
+                        { tag: "span", attrs: { title: _("SIV_REN_RULE"), "data-action": "rename" },  nodes: ["✏️"] },
+                        { tag: "span", attrs: { title: _("SIV_DEL_RULE"), "data-action": "delete", class: "bold" },  nodes: ["-"] },
+                        { tag: "span", attrs: { title: _("SIV_EXP_RULE"), "data-action": "export", class: "bold" },  nodes: ["↑"] },
+                        { tag: "span", attrs: { title: _("SIV_COPY_RULE"), "data-action": "copy" },  nodes: ["📋"] },
+                        { tag: "span", attrs: { title: _("SIV_FORMAT_JS"), "data-action": "format" },  nodes: ["{}"] },
+                    ]
+                }
+            ]);
+
             buildNodes(vals, [
                 {
-                    tag: "label",
+                    tag: "div",
+                    attrs: { class: "rule_line" },
                     nodes: [
-                        { tag: "input", attrs: { type: "checkbox", name: "useimg" } },
+                        { tag: "label", nodes: ["Link:"] },
+                        { tag: "pre", attrs: { "data-name": "link", placeholder: "link", class: "sieve_shorter_inp tar_small" } },
+                        { tag: "input", attrs: { type: "checkbox", id: "link_ci", "data-name": "link_ci" } },
                         { tag: "label", attrs: { class: "checkbox" } },
-                        " " + _("SIV_USEIMG"),
-                    ],
+                        { tag: "input", attrs: { type: "checkbox", id: "link_dc", "data-name": "link_dc" } },
+                        { tag: "label", attrs: { class: "checkbox" } },
+                        { tag: "input", attrs: { type: "checkbox", id: "link_loop", "data-name": "link_loop" } },
+                        { tag: "label", attrs: { class: "checkbox" } },
+                    ]
                 },
-                " ",
-                { tag: "input", attrs: { type: "text", name: "link", placeholder: "link", class: "sieve_shorter_inp" } },
-                { tag: "input", attrs: { type: "checkbox", id: "link_ci", name: "link_ci" } },
-                { tag: "label", attrs: { class: "checkbox" } },
-                { tag: "input", attrs: { type: "checkbox", id: "link_dc", name: "link_dc" } },
-                { tag: "label", attrs: { class: "checkbox" } },
-                { tag: "input", attrs: { type: "checkbox", id: "link_loop", name: "link_loop" } },
-                { tag: "label", attrs: { class: "checkbox" } },
-                { tag: "input", attrs: { type: "text", name: "url", placeholder: "url" } },
                 {
-                    tag: "textarea",
-                    attrs: { name: "res", placeholder: "res" },
+                    tag: "div",
+                    attrs: { class: "rule_line" },
+                    nodes: [
+                        { tag: "label", nodes: ["Url:"] },
+                        { tag: "pre", attrs: { "data-name": "url", placeholder: "url", class: "tar_small" } },
+                    ]
                 },
-                { tag: "input", attrs: { type: "text", name: "img", placeholder: "img", class: "sieve_shorter_inp" } },
-                { tag: "input", attrs: { type: "checkbox", id: "img_ci", name: "img_ci" } },
-                { tag: "label", attrs: { class: "checkbox" } },
-                { tag: "input", attrs: { type: "checkbox", id: "img_dc", name: "img_dc" } },
-                { tag: "label", attrs: { class: "checkbox" } },
-                { tag: "input", attrs: { type: "checkbox", id: "img_loop", name: "img_loop" } },
-                { tag: "label", attrs: { class: "checkbox" } },
-                { tag: "textarea", attrs: { name: "to", placeholder: "to" } },
                 {
-                    tag: "textarea",
-                    attrs: { name: "note", placeholder: "note" },
+                    tag: "div",
+                    attrs: { class: "rule_line" },
+                    nodes: [
+                        { tag: "label", nodes: ["Res:"] },
+                        { tag: "pre", attrs: { "data-name": "res", placeholder: "res", class: "tar_code" } },
+                    ]
                 },
-            ]);
-            vals = vals.querySelectorAll("input, textarea");
-            for (var inp_name, i = 0; i < vals.length; ++i) {
-                if (vals[i].id) {
-                    inp_name = vals[i].id.split("_");
-                    vals[i].defaultChecked = vals[i].checked = sd[inp_name[1]] && sd[inp_name[1]] & (inp_name[0] === "img" ? 2 : 1);
-                    vals[i].id += c;
-                    vals[i].nextSibling.setAttribute("for", vals[i].id);
-                    vals[i].nextSibling.title = _("SIV_" + inp_name[1].toUpperCase());
+                { tag: "hr" },
+                {
+                    tag: "div",
+                    attrs: { class: "rule_line" },
+                    nodes: [
+                        { tag: "label", nodes: [""] },
+                        {
+                            tag: "label",
+                            nodes: [
+                                { tag: "input", attrs: { type: "checkbox", "data-name": "useimg" } },
+                                { tag: "label", attrs: { class: "checkbox" } },
+                                " " + _("SIV_USEIMG"),
+                            ]
+                        }
+                    ]
+                },
+                {
+                    tag: "div",
+                    attrs: { class: "rule_line" },
+                    nodes: [
+                        { tag: "label", nodes: ["Img:"] },
+                        { tag: "pre", attrs: { "data-name": "img", placeholder: "img", class: "sieve_shorter_inp tar_small" } },
+                        { tag: "input", attrs: { type: "checkbox", id: "img_ci", "data-name": "img_ci" } },
+                        { tag: "label", attrs: { class: "checkbox" } },
+                        { tag: "input", attrs: { type: "checkbox", id: "img_dc", "data-name": "img_dc" } },
+                        { tag: "label", attrs: { class: "checkbox" } },
+                        { tag: "input", attrs: { type: "checkbox", id: "img_loop", "data-name": "img_loop" } },
+                        { tag: "label", attrs: { class: "checkbox" } },
+                    ]
+                },
+                {
+                    tag: "div",
+                    attrs: { class: "rule_line" },
+                    nodes: [
+                        { tag: "label", nodes: ["To:"] },
+                        { tag: "pre", attrs: { "data-name": "to", placeholder: "to", class: "tar_code" } },
+                    ]
+                },
+                { tag: "hr" },
+                {
+                    tag: "div",
+                    attrs: { class: "rule_line" },
+                    nodes: [
+                        { tag: "label", nodes: ["Note:"] },
+                        { tag: "textarea", attrs: { "data-name": "note", placeholder: "note", class: "" } },
+                    ]
                 }
-                if (vals[i].name) {
-                    if (sd[vals[i].name])
-                        if (vals[i].type === "checkbox") vals[i].defaultChecked = vals[i].checked = !!sd[vals[i].name];
-                        else vals[i].defaultValue = vals[i].value = sd[vals[i].name] || "";
-                    vals[i].name += c;
+            ]);
+            vals = vals.querySelectorAll("input, textarea, [data-name]");
+            for (const el of vals) {
+                if (el.id) {
+                    const inp_name = el.id.split("_");
+                    el.defaultChecked = el.checked = sd[inp_name[1]] && sd[inp_name[1]] & (inp_name[0] === "img" ? 2 : 1);
+                    el.id += c;
+                    el.nextSibling.setAttribute("for", el.id);
+                    el.nextSibling.title = _("SIV_" + inp_name[1].toUpperCase());
+                }
+                if (el.nodeName === 'PRE' && el.dataset.name) {
+                    let value = sd[el.dataset.name] || "";
+                    let small = el.classList.contains("tar_small");
+                    let isCode = value.startsWith(":");
+                    let editor = ace.edit(el, {
+                        mode: !isCode ? "ace/mode/tex" : "ace/mode/javascript",
+                        theme: "ace/theme/chrome",
+                        useWorker: false,
+                        selectionStyle: "text",
+                        wrap: true,
+                        cursorStyle: "slim",
+                        animatedScroll: true,
+                        printMargin: false,
+                        showGutter: !small,
+                        highlightActiveLine: !small,
+                        // minLines: small ? 1 : 5,
+                        // maxLines: small ? 10 : 300,
+                        value: value,
+                        tabSize: 2,
+                        indentedSoftWrap: isCode,
+                        enableBasicAutocompletion: true,
+                        enableSnippets: true,
+                        enableLiveAutocompletion: !small,
+                    });
+                    // editor.session.setOptions({
+                    //     wrap: true,
+                    //     wrapMethod: isCode ? "code" : "text",
+                    // });
+                    editor.renderer.setScrollMargin(4, 4, 0, 0);
+                    editor.setKeyboardHandler("ace/keyboard/vscode");
+                    if (!small) {
+                        editor.on('focus', function (ev) {
+                            ev.target.parentElement.classList.add("tar_focus");
+                        });
+                    }
+                } else if (el.dataset.name) {
+                    if (sd[el.dataset.name])
+                        if (el.type === "checkbox") {
+                            el.defaultChecked = el.checked = !!sd[el.dataset.name];
+                        } else {
+                            el.defaultValue = el.value = sd[el.dataset.name] || "";
+                        }
                 }
             }
         },
@@ -312,19 +412,20 @@ var sieve_sec,
             var container = document.createElement("div");
             if (data && data.off) container.classList.add("disabled");
             container.rule = name;
-            buildNodes(container, [{ tag: "span" }, { tag: "div", attrs: { "data-form": "1" } }]);
+            buildNodes(container, [
+                { tag: "span", attrs: { "data-action": "rule" } },
+                { tag: "div", attrs: { "data-form": "1" } },
+            ]);
             if (name) container.firstChild.textContent = name;
-            if (this.loaded) this.genData(container, data);
+            // if (this.loaded) this.genData(container, data);
             return container;
         },
         add: function () {
             sieve_container.insertBefore(this.genEntry(), sieve_container.firstElementChild);
             var rd = sieve_container.firstElementChild,
-                rd_fc = rd.firstElementChild;
-            rd_fc.contentEditable = true;
-            rd_fc.className = "focus";
-            rd.className = "opened";
-            rd_fc.focus();
+            rd_fc = rd.querySelector(':scope > [data-action="rule"]');
+            rd_fc.click();
+            rd.querySelector('[data-action="rename"]').click();
             this.countRules();
         },
         select: function (type, i, until) {
@@ -338,12 +439,14 @@ var sieve_sec,
         },
         click: function (e) {
             e.stopPropagation();
-            if (e.target.nodeName !== "SPAN") return;
-            if (e.button === 0) {
-                var child, currentIndex;
+            const target = e.target;
+            const action = target.dataset?.action;
+            if (!action || e.button !== 0) return;
+
+            if (action === "rule") {
                 if (e.shiftKey && SieveUI.lastClicked !== null) {
-                    child = e.target.parentNode;
-                    currentIndex = 0;
+                    let child = e.target.parentNode;
+                    let currentIndex = 0;
                     while ((child = child.previousElementSibling)) currentIndex++;
                     SieveUI.select(
                         sieve_container.children[SieveUI.lastClicked].classList.contains("selected") ? "add" : "remove",
@@ -352,14 +455,32 @@ var sieve_sec,
                     );
                 } else if (e.ctrlKey || e.metaKey) {
                     SieveUI.lastClicked = 0;
-                    child = e.target.parentNode;
+                    let child = e.target.parentNode;
                     while ((child = child.previousElementSibling)) SieveUI.lastClicked++;
                     e.target.parentNode.classList.toggle("selected");
                     e.preventDefault();
-                } else if (!e.target.isContentEditable && Math.abs(SieveUI.lastXY[0] - e.clientX) < 4 && Math.abs(SieveUI.lastXY[1] - e.clientY) < 4) {
+                } else if (!e.target.isContentEditable &&
+                    (!e.clientX || Math.abs(SieveUI.lastXY[0] - e.clientX) < 4) &&
+                    (!e.clientY || Math.abs(SieveUI.lastXY[1] - e.clientY) < 4)
+                ) {
                     e.target.parentNode.classList.toggle("opened");
                     if (!e.target.nextElementSibling.textContent) SieveUI.genData(e.target.parentNode);
                 }
+
+            } else if (action === "delete") {
+                SieveUI.deleteRule(target.closest(".opened"));
+
+            } else if (action === "export") {
+                SieveUI.exprt(e, [target.closest(".opened")]);
+
+            } else if (action === "copy") {
+                SieveUI.exprt(e, [target.closest(".opened")], true);
+
+            } else if (action === "rename") {
+                SieveUI.renameRule(target.closest(".opened"));
+
+            } else if (action === "format") {
+                SieveUI.formatEditor(target.closest(".opened")?.querySelector(".ace_editor.ace_focus"));
             }
         },
         move: function (e) {
@@ -388,21 +509,34 @@ var sieve_sec,
                     sieve_container.insertBefore(dcfr, e.target.parentNode);
                 }
                 div.classList.remove("move");
+                div.style.top = div.style.left = null;
                 list = sieve_container.querySelectorAll(".move_multi");
                 for (i = 0; i < list.length; ++i) list[i].classList.remove("move_multi");
                 sieve_container.onmouseover = document.onmouseup = document.onmousemove = null;
             };
         },
-        exprt: function (e) {
+        exprt: function (e, rules, copy) {
             if (!sieve_container.childElementCount) return;
             var i,
-                list = sieve_container.querySelectorAll("div.selected"),
+                selected = rules || sieve_container.querySelectorAll("div.selected"),
                 sieve = SieveUI.prepareRules(true),
                 exp = {};
             if (!sieve) return;
-            if (list.length) for (i = 0; i < list.length; ++i) exp[list[i].rule] = sieve[list[i].rule];
+            if (selected.length) for (i = 0; i < selected.length; ++i) exp[selected[i].rule] = sieve[selected[i].rule];
             else exp = sieve;
-            if ((exp = JSON.stringify(exp, null, e.shiftKey ? 2 : 0)) !== "{}") download(exp, app.name + "-sieve.json", e.ctrlKey);
+            exp = JSON.stringify(exp, null, e.shiftKey ? 2 : 0);
+            const name = selected.length === 1 ? `${selected[0].rule}-rule` : `sieve`;
+            if (exp !== "{}") {
+                if (copy) {
+                    navigator.clipboard.writeText(exp)
+                    .catch(err => {
+                        console.error("Failed to copy to clipboard:", err);
+                        alert("Failed to copy to clipboard.");
+                    });
+                } else {
+                    download(exp, `${app.name}-${name}.json`, e.ctrlKey || e.metaKey);
+                }
+            }
         },
         disable: function () {
             var i = sieve_container.childElementCount,
@@ -412,48 +546,91 @@ var sieve_sec,
         },
         remove: function () {
             if (!confirm(_("DELITEMS"))) return;
-            var i = 0,
-                list = sieve_container.querySelectorAll("div.selected");
-            if (list.length) for (; i < list.length; ++i) sieve_container.removeChild(list[i]);
-            else sieve_container.textContent = "";
+            var list = sieve_container.querySelectorAll("div.selected");
+            if (list?.length) {
+                for (let i = 0; i < list.length; ++i) {
+                    sieve_container.removeChild(list[i]);
+                }
+            } else {
+                sieve_container.textContent = "";
+                $("save_button").click();
+
+            }
             this.countRules();
         },
         rename_del: function (e) {
             e.stopPropagation();
-            if (e.target.nodeName !== "SPAN") return;
-            if (e.shiftKey) {
+            let target = e.target;
+            let action = target.dataset?.action;
+
+            if (action === "rule") {
                 e.preventDefault();
-                e = e.target;
-                e.textContent = e.textContent.trim();
-                e.contentEditable = !e.isContentEditable;
-                e.className = e.isContentEditable ? "focus" : "";
-                if (e.contentEditable) e.focus();
-            } else if (e.ctrlKey) {
-                e.preventDefault();
-                if (confirm(_("AREYOUSURE"))) {
-                    e = e.target.parentNode;
-                    e.parentNode.removeChild(e);
-                    SieveUI.countRules();
+                if (e.shiftKey) {
+                    SieveUI.renameRule(target.parentNode);
+                } else if (e.ctrlKey) {
+                    SieveUI.deleteRule(target.parentNode);
+                } else {
+                    SieveUI.renameRule(target.parentNode);
                 }
+            }
+        },
+        renameRule: function (ruleNode) {
+            let span = ruleNode.querySelector("[data-action='rule']");
+            span.textContent = span.textContent.trim();
+            span.contentEditable = !span.isContentEditable;
+            span.className = span.isContentEditable ? "focus" : "";
+            if (span.isContentEditable) {
+                span.focus();
+            }
+        },
+        formatEditor: function (pre) {
+            const editor = pre?.env?.editor;
+            if (!editor) return;
+            const value = editor.getValue() || "";
+            if (value.startsWith(":")) {
+                const cur = editor.selection.getCursor();
+                editor.setValue(
+                    // options: https://beautifier.io
+                    js_beautify(value, {
+                        "indent_size": "2",
+                        "keep_array_indentation": true,
+                    }),
+                    -1
+                );
+                editor.gotoLine(cur.row + 1, cur.column);
+            }
+        },
+        deleteRule: function (ruleNode) {
+            if (ruleNode?.parentNode && confirm(_("AREYOUSURE"))) {
+                ruleNode.parentNode.removeChild(ruleNode);
+                SieveUI.countRules();
             }
         },
         search: function () {
             var what = RegExp(SieveUI.search_f.value.trim() || ".", "i"),
                 list = sieve_container.children,
                 i = list.length;
-            while (i--)
-                if (list[i].firstElementChild.textContent) list[i].classList[what.test(list[i].firstElementChild.textContent) ? "remove" : "add"]("hidden");
+            while (i--) {
+                let name = list[i].querySelector(":scope > [data-action='rule']").textContent;
+                if (name) {
+                    list[i].classList[what.test(name) ? "remove" : "add"]("hidden");
+                }
+            }
             SieveUI.countRules();
         },
-        update: function () {
-            if (!cfg.sieve || !Object.keys(cfg.sieve).length || confirm(_("SIV_UPDALERT"))) {
-                Port.listen(function (d) {
-                    Port.listen(null);
-                    SieveUI.load((d.data || d).updated_sieve);
-                });
-                Port.send({ cmd: "update_sieve" });
+        update: async function (local) {
+            if (local || !cfg.sieve || !Object.keys(cfg.sieve).length || confirm(_("SIV_UPDALERT"))) {
                 sieve_container.textContent = "";
                 SieveUI.countRules("LOADING");
+                let res = await Port.send({ cmd: "update_sieve", local: !!local });
+                if (res?.updated_sieve) {
+                    SieveUI.load(res.updated_sieve);
+                } else if (res?.error) {
+                    alert(res.error);
+                    if (confirm(_("SIV_LOCALALERT"))) {
+                        SieveUI.update(true);
+                    }
+                }
             }
         },
     };
