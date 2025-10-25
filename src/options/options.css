@@ -70,7 +70,7 @@ a:hover {
     position: absolute;
     top: 0;
     width: 100%;
-    z-index: 2;
+    z-index: 10;
 }
 #importer > b {
     border-radius: 10px;
@@ -346,6 +346,7 @@ textarea:focus,
 textarea:hover {
     border: 1px solid #888;
 }
+.op_buttons input[type="checkbox"],
 form input[type="checkbox"] {
     display: none;
 }
