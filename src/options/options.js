@@ -664,7 +664,7 @@ window.addEventListener(
             chrome.tabs.create({ url: "chrome://extensions/#:~:text=Developer%20mode" });
         });
 
-        checkUserScripts();
+        setTimeout(checkUserScripts, 500);
     },
     false
 );
