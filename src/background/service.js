@@ -51,28 +51,40 @@ function withBaseURI(base, relative, secure) {
 }
 
 async function updateSieve(local, callback) {
-    const { sieve, sieveRepository } = await cfg.get(["sieveRepository", "sieve"]);
-    local = local || !sieveRepository;
+    const { sieve: curSieve, sieveRepository: sieveRepoUrl } = await cfg.get(["sieveRepository", "sieve"]);
+    local = local || !sieveRepoUrl;
 
-    const response = await fetch(local ? "/data/sieve.json" : sieveRepository);
-    if (!local && !response.status) throw new Error("HTTP " + response.status);
-
-    const repository = await response.json();
     try {
-        (function (currentSieve, newSieve) {
-            if (currentSieve) {
+        const response = await fetch(local ? "/data/sieve.json" : sieveRepoUrl);
+        if (!response.ok) {
+            throw new Error("HTTP " + response.status);
+        }
+
+        let newSieve = await response.json();
+        if (curSieve) {
                 let merged = {};
-                for (let key in currentSieve) {
-                    if (key === "dereferers") break;
-                    if (!newSieve[key]) merged[key] = currentSieve[key];
+            // keep rules that starts with "_"
+            for (let key in curSieve) {
+                if (key.startsWith("_")) {
+                    merged[key] = curSieve[key];
                 }
+            }
+            // add new and updated rules
                 for (let key in newSieve) {
                     merged[key] = newSieve[key];
                 }
+            // add all other existing rules and disable them
+            for (let key in curSieve) {
+                // if (key === "dereferers") break;
+                if (!merged[key]) {
+                    curSieve[key].off = 1;
+                    merged[key] = curSieve[key];
+                }
+            }
                 newSieve = merged;
             }
             updatePrefs({ sieve: newSieve }, function () {
-                if (typeof callback === "function") callback(newSieve);
+            if (typeof callback === "function") callback({ updated_sieve: newSieve });
             });
         console.info(manifest.name + ": Sieve updated from " + (local ? "local" : "remote") + " repository.");
 
@@ -81,10 +93,14 @@ async function updateSieve(local, callback) {
             manifest.name + ": Sieve failed to update from " + (local ? "local" : "remote") + " repository! | ",
             error.message
         );
+
         if (!local) {
-            cfg.get("sieve", function (data) {
-                if (!data.sieve) updateSieve(true);
-            });
+            const data = await cfg.get("sieve");
+            if (!data.sieve) {
+                updateSieve(true);
+            } else if (callback) {
+                return callback({ error: "Error. " + error.message });
+            }
         }
     }
 }
@@ -192,7 +208,7 @@ async function updatePrefs(prefs, callback) {
     if (!prefs.sieve) {
         const data = await cfg.get("sieve");
         if (!data?.sieve) {
-            updateSieve(false);
+            await updateSieve(false);
         } else {
             cacheSieve(data.sieve);
         }
@@ -258,8 +274,8 @@ function onMessage(message, sender, sendResponse) {
             updatePrefs(msg.prefs);
             break;
         case "update_sieve":
-            updateSieve(false, function (data) {
-                context.postMessage({ updated_sieve: data });
+            updateSieve(msg.local, function (data) {
+                context.postMessage(data);
             });
             break;
         case "loadScripts":

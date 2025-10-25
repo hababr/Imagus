@@ -97,11 +97,11 @@ const Port = {
         }
     },
 
-    send: function (message) {
+    send: async function (message) {
         if (Port.listener) {
-            chrome.runtime.sendMessage(message, Port.listener);
+            return chrome.runtime.sendMessage(message, Port.listener);
         } else {
-            chrome.runtime.sendMessage(message);
+            return chrome.runtime.sendMessage(message);
         }
     },
 };
