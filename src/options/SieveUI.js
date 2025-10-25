@@ -135,9 +135,8 @@ var sieve_sec,
                             ignored_rules.push(name);
                             continue;
                         }
-                        rule = SieveUI.genEntry(name, local_sieve[name]);
+                        rule = SieveUI.genEntry(name, local_sieve[name], visible_rules[name]?.classList.contains("opened"));
                         if (visible_rules[name]) {
-                            if (visible_rules[name].classList.contains("opened")) rule.classList.add("opened");
                             sieve_container.replaceChild(rule, visible_rules[name]);
                         } else sfrag.appendChild(rule);
                         SieveUI.sieve[name] = local_sieve[name];
@@ -408,16 +407,17 @@ var sieve_sec,
                 }
             }
         },
-        genEntry: function (name, data) {
+        genEntry: function (name, data, open) {
             var container = document.createElement("div");
-            if (data && data.off) container.classList.add("disabled");
+            if (data?.off) container.classList.add("disabled");
+            if (open) container.classList.add("opened");
             container.rule = name;
             buildNodes(container, [
                 { tag: "span", attrs: { "data-action": "rule" } },
                 { tag: "div", attrs: { "data-form": "1" } },
             ]);
             if (name) container.firstChild.textContent = name;
-            // if (this.loaded) this.genData(container, data);
+            if (open) this.genData(container, data);
             return container;
         },
         add: function () {
@@ -629,8 +629,10 @@ var sieve_sec,
                     alert(res.error);
                     if (confirm(_("SIV_LOCALALERT"))) {
                         SieveUI.update(true);
+                        return;
                     }
                 }
+                readCfg();
             }
         },
     };

@@ -298,7 +298,7 @@ var load = function () {
     }
 };
 
-var save = function () {
+var save = async function () {
     var i, m, fld, fldType, host, shidx, shosts, pref;
     var fields = document.querySelectorAll("input[name*=_], select[name*=_], textarea[name*=_]");
     var prefs = {};
@@ -349,7 +349,8 @@ var save = function () {
             } else prefs[pref[0]][pref[1]] = fld.value;
         }
     }
-    Port.send({ cmd: "savePrefs", prefs: prefs });
+    await Port.send({ cmd: "savePrefs", prefs: prefs });
+    await readCfg();
 };
 
 var download = function (data, filename, exportAsText) {
@@ -467,7 +468,7 @@ window.onhashchange = function () {
 
 window.addEventListener(
     "load",
-    function () {
+    async function () {
         let manifest = chrome.runtime.getManifest();
         app.name = manifest.name;
         app.version = manifest.version;
@@ -643,20 +644,16 @@ window.addEventListener(
                 e.preventDefault();
             };
         });
-        Port.listen(function (d) {
-            if (!d || !d.cfg) return;
-            Port.listen(null);
-            cfg = d.cfg;
-            load();
-            window.onhashchange();
-            var advanced_prefs = $("tls_advanced");
-            advanced_prefs.onchange = function () {
-                document.body.classList[this.checked ? "add" : "remove"]("advanced");
-            };
-            advanced_prefs.onchange();
-            document.body.style.display = "block";
-        });
-        Port.send({ cmd: "cfg_get", keys: ["hz", "keys", "tls", "grants"] });
+
+        await readCfg();
+        load();
+        window.onhashchange();
+        var advanced_prefs = $("tls_advanced");
+        advanced_prefs.onchange = function () {
+            document.body.classList[this.checked ? "add" : "remove"]("advanced");
+        };
+        advanced_prefs.onchange();
+        document.body.style.display = "block";
 
         document.querySelector("#allow_user_scripts_message > a").addEventListener("click", function (event) {
             event.preventDefault();

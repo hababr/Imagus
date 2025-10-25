@@ -271,7 +271,7 @@ function onMessage(message, sender, sendResponse) {
                 });
             break;
         case "savePrefs":
-            updatePrefs(msg.prefs);
+            updatePrefs(msg.prefs, context.postMessage);
             break;
         case "update_sieve":
             updateSieve(msg.local, function (data) {
