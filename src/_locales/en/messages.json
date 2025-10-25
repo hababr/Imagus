@@ -146,6 +146,9 @@
     "HZ_CAP_BOTTOM": {
         "message": "bottom"
     },
+  "HZ_CAP_WRAP": {
+    "message": "Wrap caption by default"
+  },
     "HZ_CAP_NOSBAR": {
         "message": "Prevent tooltips (useful with hidden statusbar)"
     },
@@ -441,7 +444,7 @@
         "message": "The extension just got updated to a new version!"
     },
     "GRNT_HELP": {
-        "message": "Basic syntax: <b>operator:URL</b>\nOperators: <b>!</b> (block), <b>~</b> (allow).\nStart a line with a <b>;</b> (semicolon) to make it inactive.\nUse regular expression in URL by duplicating the operator.\n* (asterisk) any URL.\n\nAllow only on imgur\n<code>!:*\n~:http://imgur.com/</code>\n<br>\nBlock a few sites\n<code>!:flickr.com/\n!:youtube.com/\n!!:^https?://www\\.ebay\\.\n!!:^ftp://</code>\n\nOn reddit, allow only /r/pics and /r/funny\n<code>!:http://www.reddit.com/\n~~:^http://www\\.reddit\\.com/r/(?:pics|funny)/</code>"
+    "message": "Basic syntax: <b>operator:URL</b>\nOperators: <b>!</b> (block), <b>~</b> (allow).\nStart a line with a <b>;</b> (semicolon) to make it inactive.\nUse regular expression in URL by duplicating the operator.\n* (asterisk) any URL.\n\nAllow only on imgur\n<code>!:*\n~:https://imgur.com/</code>\n<br>\nBlock a few sites\n<code>!:flickr.com/\n!:youtube.com/\n!!:^https?://www\\.ebay\\.\n!!:^ftp://</code>\n\nOn reddit, allow only /r/pics and /r/funny\n<code>!:https://www.reddit.com/\n~~:^https://www\\.reddit\\.com/r/(?:pics|funny)/</code>"
     },
     "APP_VERSIONINFO": {
         "message": "Check out the <a data-hl>highlights</a> of this release, and/or see the full <a data-cl>changelog</a>!"
