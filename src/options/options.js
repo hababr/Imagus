@@ -195,6 +195,14 @@ var ImprtHandler = function (caption, data_handler, hide_opts) {
             importer.ondata(e, this);
         } else tarea.focus();
     };
+    document.addEventListener("mousedown", function (e) {
+        if (!e.target.closest("#importer, [data-action]")) importer.visible(false);
+    });
+    document.addEventListener("keydown", function (e) {
+        if (e.key === "Escape") {
+            importer.visible(false);
+        }
+    });
     importer.visible(true);
 };
 
